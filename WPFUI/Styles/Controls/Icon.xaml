@@ -8,21 +8,23 @@
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Foreground" Value="{DynamicResource WUForeground}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Micon}" />
+        <Setter Property="OverridesDefaultStyle" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type controls:Icon}">
-                    <TextBlock
-                        Margin="0"
-                        HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
-                        VerticalAlignment="{TemplateBinding VerticalAlignment}"
-                        FontFamily="{DynamicResource Micon}"
-                        FontSize="{TemplateBinding FontSize}"
-                        Foreground="{TemplateBinding Foreground}"
-                        Text="{TemplateBinding RawGlyph}"
-                        TextAlignment="Center"
-                        TextOptions.TextFormattingMode="Ideal" />
+                    <Border>
+                        <ContentPresenter
+                            Margin="0"
+                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                            Content="{TemplateBinding RawGlyph}"
+                            RecognizesAccessKey="True"
+                            TextOptions.TextFormattingMode="Ideal" />
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
 </ResourceDictionary>

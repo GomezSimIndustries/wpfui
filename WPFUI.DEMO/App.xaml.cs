@@ -14,7 +14,7 @@ namespace WPFUI.Demo
     {
         protected override void OnStartup(StartupEventArgs e)
         {
-            WPFUI.Theme.WatchSystemTheme();
+            WPFUI.Theme.Manager.SetSystemTheme();
         }
     }
 }

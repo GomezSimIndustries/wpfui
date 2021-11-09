@@ -10,35 +10,35 @@ namespace WPFUI.Controls
 {
     public partial class CardCollapse : ContentControl
     {
-        public static readonly DependencyProperty TitleProperty = DependencyProperty.Register("Title", 
+        public static readonly DependencyProperty TitleProperty = DependencyProperty.Register("Title",
             typeof(string), typeof(CardCollapse), new PropertyMetadata(""));
 
         public static readonly DependencyProperty SubtitleProperty = DependencyProperty.Register("Subtitle",
             typeof(string), typeof(CardCollapse), new PropertyMetadata(""));
 
-        public static readonly DependencyProperty GlyphProperty = DependencyProperty.Register("Glyph", 
+        public static readonly DependencyProperty GlyphProperty = DependencyProperty.Register("Glyph",
             typeof(Common.Icon), typeof(CardCollapse), new PropertyMetadata(Common.Icon.Empty, OnGlyphChanged));
-        
-        public static readonly DependencyProperty RawGlyphProperty = DependencyProperty.Register("RawGlyph", 
+
+        public static readonly DependencyProperty RawGlyphProperty = DependencyProperty.Register("RawGlyph",
             typeof(string), typeof(CardCollapse), new PropertyMetadata(""));
-        
-        public static readonly DependencyProperty IsOpenedProperty = DependencyProperty.Register("IsOpened", 
+
+        public static readonly DependencyProperty IsOpenedProperty = DependencyProperty.Register("IsOpened",
             typeof(bool), typeof(CardCollapse), new PropertyMetadata(false));
-        
-        public static readonly DependencyProperty IsGlyphProperty = DependencyProperty.Register("IsGlyph", 
+
+        public static readonly DependencyProperty IsGlyphProperty = DependencyProperty.Register("IsGlyph",
             typeof(bool), typeof(CardCollapse), new PropertyMetadata(false));
-        
+
         public static readonly DependencyProperty BorderCommandProperty =
-            DependencyProperty.Register("BorderCommand", 
+            DependencyProperty.Register("BorderCommand",
                 typeof(Common.RelayCommand), typeof(CardCollapse), new PropertyMetadata(null));
 
-        public Common.RelayCommand BorderCommand => (Common.RelayCommand) GetValue(BorderCommandProperty);
+        public Common.RelayCommand BorderCommand => (Common.RelayCommand)GetValue(BorderCommandProperty);
 
-        public bool IsGlyph => (bool) GetValue(IsGlyphProperty);
+        public bool IsGlyph => (bool)GetValue(IsGlyphProperty);
 
         public string Title
         {
-            get => (string) GetValue(TitleProperty);
+            get => (string)GetValue(TitleProperty);
             set => SetValue(TitleProperty, value);
         }
 
@@ -50,13 +50,13 @@ namespace WPFUI.Controls
 
         public bool IsOpened
         {
-            get => (bool) GetValue(IsOpenedProperty);
+            get => (bool)GetValue(IsOpenedProperty);
             set => SetValue(IsOpenedProperty, value);
         }
 
         public Common.Icon Glyph
         {
-            get => (Common.Icon) GetValue(GlyphProperty);
+            get => (Common.Icon)GetValue(GlyphProperty);
             set => SetValue(GlyphProperty, value);
         }
 

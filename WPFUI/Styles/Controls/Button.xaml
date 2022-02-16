@@ -65,7 +65,7 @@
     <Style TargetType="{x:Type controls:Button}">
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
         <Setter Property="Background" Value="{DynamicResource SystemAccentBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentBrush}" />
+        <!--<Setter Property="BorderBrush" Value="{DynamicResource SystemAccentBrush}" />-->
         <Setter Property="BorderBrush" Value="{DynamicResource ControlElevationBorderBrush}" />
         <Setter Property="HoverBackground">
             <Setter.Value>

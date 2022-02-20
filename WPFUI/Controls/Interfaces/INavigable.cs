@@ -11,7 +11,7 @@ namespace WPFUI.Controls.Interfaces
     public interface INavigable
     {
         /// <summary>
-        /// 
+        /// Method triggered when the page is navigated.
         /// </summary>
         /// <param name="sender">Navigation service, from which the navigation was made.</param>
         /// <param name="current">Current page.</param>

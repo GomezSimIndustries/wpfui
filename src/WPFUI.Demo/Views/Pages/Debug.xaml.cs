@@ -1,66 +1,20 @@
-﻿using System.Collections.ObjectModel;
-using System.Windows;
+﻿// This Source Code Form is subject to the terms of the MIT License.
+// If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
+// Copyright (C) Leszek Pomianowski and WPF UI Contributors.
+// All Rights Reserved.
+
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using WPFUI.Controls;
 
-namespace WPFUI.Demo.Views.Pages
+namespace WPFUI.Demo.Views.Pages;
+
+/// <summary>
+/// Interaction logic for Debug.xaml
+/// </summary>
+public partial class Debug : Page
 {
-    /// <summary>
-    /// Interaction logic for Debug.xaml
-    /// </summary>
-    public partial class Debug : Page
+    public Debug()
     {
-        public ObservableCollection<UIElement> SControlsCollection { get; internal set; }
-        public ObservableCollection<UIElement> SControlsCollectionSecondary { get; internal set; }
-        public ObservableCollection<UIElement> SControlsCollectionTertiary { get; internal set; }
-        public ObservableCollection<UIElement> SControlsCollectionQuaternary { get; internal set; }
-
-        public Debug()
-        {
-            InitializeComponent();
-
-            SControlsCollection = new()
-            {
-                new Anchor { Content = "Test Anchor" },
-                new Anchor { Content = "Test Anchor", Appearance = Common.Appearance.Danger },
-                new Badge { Content = "Test Badge" },
-                new CheckBox { Content = "Checkbox" },
-                new ToggleButton() { Content = "ToggleButton" },
-                new ToggleSwitch() { Content = "ToggleSwitch" },
-            };
-
-            SControlsCollectionSecondary = new()
-            {
-                new Anchor { Content = "Test Anchor" },
-                new Anchor { Content = "Test Anchor", Appearance = Common.Appearance.Danger },
-                new Badge { Content = "Test Badge" },
-                new CheckBox { Content = "Checkbox" },
-                new ToggleButton() { Content = "ToggleButton" },
-                new ToggleSwitch() { Content = "ToggleSwitch" },
-            };
-
-            SControlsCollectionTertiary = new()
-            {
-                new Anchor { Content = "Test Anchor" },
-                new Anchor { Content = "Test Anchor", Appearance = Common.Appearance.Danger },
-                new Badge { Content = "Test Badge" },
-                new CheckBox { Content = "Checkbox" },
-                new ToggleButton() { Content = "ToggleButton" },
-                new ToggleSwitch() { Content = "ToggleSwitch" },
-            };
-
-            SControlsCollectionQuaternary = new()
-            {
-                new Anchor { Content = "Test Anchor" },
-                new Anchor { Content = "Test Anchor", Appearance = Common.Appearance.Danger },
-                new Badge { Content = "Test Badge" },
-                new CheckBox { Content = "Checkbox" },
-                new ToggleButton() { Content = "ToggleButton" },
-                new ToggleSwitch() { Content = "ToggleSwitch" },
-            };
-
-            DataContext = this;
-        }
+        InitializeComponent();
     }
 }
+

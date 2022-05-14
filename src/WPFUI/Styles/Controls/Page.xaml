@@ -21,12 +21,11 @@
         <Setter Property="TextElement.FontWeight" Value="Regular" />
         <!--  The Display option casues a large aliasing effect  -->
         <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
-        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="OverridesDefaultStyle" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate>
+                <ControlTemplate TargetType="{x:Type Page}">
                     <Grid>
                         <ContentPresenter
                             HorizontalAlignment="Stretch"
@@ -44,7 +43,7 @@
         TargetType="{x:Type Page}">
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate>
+                <ControlTemplate TargetType="{x:Type Page}">
                     <controls:DynamicScrollViewer>
                         <ContentPresenter
                             Margin="0,0,0,0"

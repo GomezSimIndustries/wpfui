@@ -5,51 +5,95 @@
 
 using System.Threading.Tasks;
 using Wpf.Ui.Common;
-using Wpf.Ui.Controls;
+using Wpf.Ui.Controls.Interfaces;
 
 namespace Wpf.Ui.Mvvm.Contracts;
 
 /// <summary>
-/// Represents a contract with the service that provides global <see cref="Wpf.Ui.Controls.Snackbar"/>.
+/// Represents a contract with the service that provides global <see cref="ISnackbarControl"/>.
 /// </summary>
 public interface ISnackbarService
 {
     /// <summary>
-    /// Sets the <see cref="Snackbar"/> 
+    /// Gets or sets a time for which the <see cref="ISnackbarControl"/> should be visible.
+    /// </summary>
+    int Timeout { get; set; }
+
+    /// <summary>
+    /// Sets the <see cref="ISnackbarControl"/> 
     /// </summary>
     /// <param name="snackbar"></param>
-    void SetSnackbarControl(Snackbar snackbar);
+    void SetSnackbarControl(ISnackbarControl snackbar);
 
     /// <summary>
-    /// Sets <see cref="Snackbar.Title"/> and <see cref="Snackbar.Message"/>, then shows the <see cref="Snackbar"/> for the amount of time specified in <see cref="Snackbar.Timeout"/>.
+    /// Shows the snackbar. If it is already visible, firstly hides it for a moment, changes its content, and then shows it again.
     /// </summary>
-    /// <param name="title"></param>
-    /// <param name="message"></param>
-    void ShowSnackbar(string title, string message);
-
+    /// <returns><see langword="true"/> if invocation of <see langword="async"/> method succeeded, Exception otherwise.</returns>
+    bool Show();
 
     /// <summary>
-    /// Sets <see cref="Snackbar.Title"/>, <see cref="Snackbar.Message"/>, <see cref="Snackbar.Icon"/> then shows the <see cref="Snackbar"/> for the amount of time specified in <see cref="Snackbar.Timeout"/>.
+    /// Shows the snackbar. If it is already visible, firstly hides it for a moment, changes its content, and then shows it again.
     /// </summary>
-    /// <param name="title"></param>
-    /// <param name="message"></param>
-    /// <param name="icon"></param>
-    void ShowSnackbar(string title, string message, SymbolRegular icon);
+    /// <param name="title"><see cref="ISnackbarControl.Title"/> at the top of the snackbar.</param>
+    /// <returns><see langword="true"/> if invocation of <see langword="async"/> method succeeded, Exception otherwise.</returns>
+    bool Show(string title);
 
     /// <summary>
-    /// Asynchronously sets <see cref="Snackbar.Title"/> and <see cref="Snackbar.Message"/>, then shows the <see cref="Snackbar"/> for the amount of time specified in <see cref="Snackbar.Timeout"/>.
+    /// Shows the snackbar. If it is already visible, firstly hides it for a moment, changes its content, and then shows it again.
     /// </summary>
-    /// <param name="title"></param>
-    /// <param name="message"></param>
-    /// <returns></returns>
-    Task<bool> ShowSnackbarAsync(string title, string message);
+    /// <param name="title"><see cref="ISnackbarControl.Title"/> at the top of the snackbar.</param>
+    /// <param name="message"><see cref="ISnackbarControl.Message"/> in the content of the snackbar.</param>
+    /// <returns><see langword="true"/> if invocation of <see langword="async"/> method succeeded, Exception otherwise.</returns>
+    bool Show(string title, string message);
 
     /// <summary>
-    /// Asynchronously sets <see cref="Snackbar.Title"/>, <see cref="Snackbar.Message"/>, <see cref="Snackbar.Icon"/> then shows the <see cref="Snackbar"/> for the amount of time specified in <see cref="Snackbar.Timeout"/>.
+    /// Shows the snackbar. If it is already visible, firstly hides it for a moment, changes its content, and then shows it again.
     /// </summary>
-    /// <param name="title"></param>
-    /// <param name="message"></param>
-    /// <param name="icon"></param>
-    /// <returns></returns>
-    Task<bool> ShowSnackbarAsync(string title, string message, SymbolRegular icon);
+    /// <param name="title"><see cref="ISnackbarControl.Title"/> at the top of the snackbar.</param>
+    /// <param name="message"><see cref="ISnackbarControl.Message"/> in the content of the snackbar.</param>
+    /// <param name="icon">Icon on the left.</param>
+    /// <returns><see langword="true"/> if invocation of <see langword="async"/> method succeeded, Exception otherwise.</returns>
+    bool Show(string title, string message, SymbolRegular icon);
+
+    /// <summary>
+    /// Asynchronously shows the snackbar. If it is already visible, firstly hides it for a moment, changes its content, and then shows it again.
+    /// </summary>
+    /// <returns><see langword="true"/> if the operation was successful.</returns>
+    Task<bool> ShowAsync();
+
+    /// <summary>
+    /// Asynchronously shows the snackbar. If it is already visible, firstly hides it for a moment, changes its content, and then shows it again.
+    /// </summary>
+    /// <param name="title"><see cref="ISnackbarControl.Title"/> at the top of the snackbar.</param>
+    /// <returns><see langword="true"/> if the operation was successful.</returns>
+    Task<bool> ShowAsync(string title);
+
+    /// <summary>
+    /// Asynchronously shows the snackbar. If it is already visible, firstly hides it for a moment, changes its content, and then shows it again.
+    /// </summary>
+    /// <param name="title"><see cref="ISnackbarControl.Title"/> at the top of the snackbar.</param>
+    /// <param name="message"><see cref="ISnackbarControl.Message"/> in the content of the snackbar.</param>
+    /// <returns><see langword="true"/> if the operation was successful.</returns>
+    Task<bool> ShowAsync(string title, string message);
+
+    /// <summary>
+    /// Asynchronously shows the snackbar. If it is already visible, firstly hides it for a moment, changes its content, and then shows it again.
+    /// </summary>
+    /// <param name="title"><see cref="ISnackbarControl.Title"/> at the top of the snackbar.</param>
+    /// <param name="message"><see cref="ISnackbarControl.Message"/> in the content of the snackbar.</param>
+    /// <param name="icon"><see cref="IIconControl.Icon"/> on the left.</param>
+    /// <returns><see langword="true"/> if the operation was successful.</returns>
+    Task<bool> ShowAsync(string title, string message, SymbolRegular icon);
+
+    /// <summary>
+    /// Hides the snackbar based on the selected animation, if control is visible.
+    /// </summary>
+    /// <returns><see langword="true"/> if invocation of <see langword="async"/> method succeeded, Exception otherwise.</returns>
+    bool Hide();
+
+    /// <summary>
+    /// Asynchronously hides the snackbar based on the selected animation, if control is visible.
+    /// </summary>
+    /// <returns><see langword="true"/> if the operation was successful.</returns>
+    Task<bool> HideAsync();
 }

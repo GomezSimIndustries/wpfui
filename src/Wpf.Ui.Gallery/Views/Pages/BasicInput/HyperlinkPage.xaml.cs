@@ -15,6 +15,8 @@ public partial class HyperlinkPage : INavigableView<HyperlinkViewModel>
     public HyperlinkPage(HyperlinkViewModel viewModel)
     {
         ViewModel = viewModel;
+        DataContext = this;
+
         InitializeComponent();
     }
 }

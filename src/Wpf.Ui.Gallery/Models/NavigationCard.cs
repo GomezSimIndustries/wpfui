@@ -3,18 +3,15 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using System;
-using Wpf.Ui.Common;
-
 namespace Wpf.Ui.Gallery.Models;
 
-public class NavigationCard
+public record NavigationCard
 {
-    public string Name { get; set; } = String.Empty;
+    public string Name { get; init; }
 
-    public SymbolRegular Icon { get; set; } = SymbolRegular.Empty;
+    public SymbolRegular Icon { get; init; }
 
-    public string Description { get; set; } = String.Empty;
+    public string Description { get; init; }
 
-    public string Link { get; set; } = String.Empty;
+    public string Link { get; init; }
 }

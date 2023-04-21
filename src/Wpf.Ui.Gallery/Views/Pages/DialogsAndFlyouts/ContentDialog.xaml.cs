@@ -15,7 +15,6 @@ public partial class ContentDialogPage : INavigableView<ContentDialogViewModel>
     {
         ViewModel = viewModel;
         DataContext = viewModel;
-        DataContext = viewModel;
 
         InitializeComponent();
     }

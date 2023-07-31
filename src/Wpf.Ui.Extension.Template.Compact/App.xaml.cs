@@ -1,14 +1,19 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿// This Source Code Form is subject to the terms of the MIT License.
+// If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
+// Copyright (C) Leszek Pomianowski and WPF UI Contributors.
+// All Rights Reserved.
+
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.IO;
 using System.Reflection;
-using System.Windows;
 using System.Windows.Threading;
-using Wpf.Ui.Mvvm.Contracts;
-using Wpf.Ui.Mvvm.Services;
-using $safeprojectname$.Models;
 using $safeprojectname$.Services;
+using $safeprojectname$.ViewModels.Pages;
+using $safeprojectname$.ViewModels.Windows;
+using $safeprojectname$.Views.Pages;
+using $safeprojectname$.Views.Windows;
 
 namespace $safeprojectname$
 {
@@ -27,35 +32,20 @@ namespace $safeprojectname$
             .ConfigureAppConfiguration(c => { c.SetBasePath(Path.GetDirectoryName(Assembly.GetEntryAssembly()!.Location)); })
             .ConfigureServices((context, services) =>
             {
-                // App Host
                 services.AddHostedService<ApplicationHostService>();
 
-                // Page resolver service
-                services.AddSingleton<IPageService, PageService>();
-
-                // Theme manipulation
-                services.AddSingleton<IThemeService, ThemeService>();
-
-                // TaskBar manipulation
-                services.AddSingleton<ITaskBarService, TaskBarService>();
-
-                // Service containing navigation, same as INavigationWindow... but without window
+                services.AddSingleton<MainWindow>();
+                services.AddSingleton<MainWindowViewModel>();
                 services.AddSingleton<INavigationService, NavigationService>();
+                services.AddSingleton<ISnackbarService, SnackbarService>();
+                services.AddSingleton<IContentDialogService, ContentDialogService>();
 
-                // Main window with navigation
-                services.AddScoped<INavigationWindow, Views.Windows.MainWindow>();
-                services.AddScoped<ViewModels.MainWindowViewModel>();
-
-                // Views and ViewModels
-                services.AddScoped<Views.Pages.DashboardPage>();
-                services.AddScoped<ViewModels.DashboardViewModel>();
-                services.AddScoped<Views.Pages.DataPage>();
-                services.AddScoped<ViewModels.DataViewModel>();
-                services.AddScoped<Views.Pages.SettingsPage>();
-                services.AddScoped<ViewModels.SettingsViewModel>();
-
-                // Configuration
-                services.Configure<AppConfig>(context.Configuration.GetSection(nameof(AppConfig)));
+                services.AddSingleton<DashboardPage>();
+                services.AddSingleton<DashboardViewModel>();
+                services.AddSingleton<DataPage>();
+                services.AddSingleton<DataViewModel>();
+                services.AddSingleton<SettingsPage>();
+                services.AddSingleton<SettingsViewModel>();
             }).Build();
 
         /// <summary>
@@ -72,9 +62,9 @@ namespace $safeprojectname$
         /// <summary>
         /// Occurs when the application is loading.
         /// </summary>
-        private async void OnStartup(object sender, StartupEventArgs e)
+        private void OnStartup(object sender, StartupEventArgs e)
         {
-            await _host.StartAsync();
+            _host.Start();
         }
 
         /// <summary>

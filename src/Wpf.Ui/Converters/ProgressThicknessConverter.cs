@@ -12,7 +12,7 @@ namespace Wpf.Ui.Converters;
 /// <summary>
 /// Converts Height to Thickness.
 /// </summary>
-class ProgressThicknessConverter : IValueConverter
+internal class ProgressThicknessConverter : IValueConverter
 {
     /// <summary>
     /// Checks if the <see cref="SymbolRegular"/> is valid and not empty.
@@ -27,7 +27,9 @@ class ProgressThicknessConverter : IValueConverter
         // TODO: It's too hardcoded, we should define better formula.
 
         if (value is double height)
+        {
             return height / 8;
+        }
 
         return 12.0d;
     }

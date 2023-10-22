@@ -7,7 +7,8 @@ using System.Windows.Data;
 
 namespace Wpf.Ui.Converters;
 
-internal class EnumToBoolConverter<TEnum> : IValueConverter where TEnum : Enum
+internal class EnumToBoolConverter<TEnum> : IValueConverter
+    where TEnum : Enum
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {

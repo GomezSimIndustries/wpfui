@@ -18,8 +18,6 @@ public partial class MainView
 
         InitializeComponent();
 
-        Appearance.SystemThemeWatcher.Watch(this);
-
         Loaded += (_, _) => RootNavigation.Navigate(typeof(DashboardPage));
 
         UiApplication.Current.MainWindow = this;

@@ -19,9 +19,9 @@
     <system:Double x:Key="RadioButtonBorderThemeThickness">1</system:Double>
     <system:Double x:Key="ToggleButtonWidth">40</system:Double>
     <system:Double x:Key="ToggleButtonHeight">20</system:Double>
-    <Thickness x:Key="ToggleSwitchPadding">8,6,0,0</Thickness>
+    <Thickness x:Key="ToggleSwitchPadding">0,6,8,0</Thickness>
     <Thickness x:Key="ToggleSwitchBorderThemeThickness">1</Thickness>
-    <Thickness x:Key="ToggleSwitchContentMargin">8,0,0,0</Thickness>
+    <Thickness x:Key="ToggleSwitchContentMargin">0,0,8,0</Thickness>
 
     <Style x:Key="DefaultUiToggleSwitchStyle" TargetType="{x:Type controls:ToggleSwitch}">
         <!--  Universal WPF UI focus  -->
@@ -45,11 +45,11 @@
                 <ControlTemplate TargetType="{x:Type controls:ToggleSwitch}">
                     <Grid Background="Transparent">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Grid
-                            Grid.Column="0"
+                            Grid.Column="1"
                             Width="{StaticResource ToggleButtonWidth}"
                             Height="{StaticResource ToggleButtonHeight}">
                             <Rectangle
@@ -104,7 +104,7 @@
                         </Grid>
                         <ContentPresenter
                             x:Name="ContentPresenter"
-                            Grid.Column="1"
+                            Grid.Column="0"
                             Margin="{StaticResource ToggleSwitchContentMargin}"
                             HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                             VerticalAlignment="{TemplateBinding VerticalContentAlignment}"

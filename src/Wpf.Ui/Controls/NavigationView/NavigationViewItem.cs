@@ -455,18 +455,66 @@ public class NavigationViewItem
             return;
         }
 
+        // Remove old event subscriptions if applicable
+        if (e.OldValue is INotifyCollectionChanged oldCollection)
+        {
+            oldCollection.CollectionChanged -= navigationViewItem.OnMenuItemsCollectionChanged;
+        }
+
         navigationViewItem.MenuItems.Clear();
 
         if (e.NewValue is IEnumerable newItemsSource and not string)
         {
             foreach (var item in newItemsSource)
             {
-                _ = navigationViewItem.MenuItems.Add(item);
+                navigationViewItem.MenuItems.Add(item);
+            }
+
+            // Subscribe to new collection changes if applicable
+            if (newItemsSource is INotifyCollectionChanged newCollection)
+            {
+                newCollection.CollectionChanged += navigationViewItem.OnMenuItemsCollectionChanged;
             }
         }
         else if (e.NewValue != null)
         {
-            _ = navigationViewItem.MenuItems.Add(e.NewValue);
+            navigationViewItem.MenuItems.Add(e.NewValue);
+        }
+    }
+
+    private void OnMenuItemsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+    {
+        switch (e.Action)
+        {
+            case NotifyCollectionChangedAction.Add:
+                foreach (var newItem in e.NewItems)
+                {
+                    MenuItems.Add(newItem);
+                }
+                
+                break;
+            case NotifyCollectionChangedAction.Remove:
+                foreach (var oldItem in e.OldItems)
+                {
+                    MenuItems.Remove(oldItem);
+                }
+                
+                break;
+            case NotifyCollectionChangedAction.Reset:
+                MenuItems.Clear();
+                break;
+            case NotifyCollectionChangedAction.Replace:
+                foreach (var oldItem in e.OldItems)
+                {
+                    MenuItems.Remove(oldItem);
+                }
+                
+                foreach (var newItem in e.NewItems)
+                {
+                    MenuItems.Add(newItem);
+                }
+                
+                break;
         }
     }
 

@@ -3,6 +3,9 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+/* Based on Windows UI Library
+   Copyright(c) Microsoft Corporation.All rights reserved. */
+
 using System.Collections.Specialized;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;

@@ -584,7 +584,7 @@ public class ContentDialog : ContentControl
     {
         var buttonClickEventArgs = new ContentDialogButtonClickEventArgs(ButtonClickedEvent, this)
         {
-            Button = button
+            Button = button,
         };
 
         RaiseEvent(buttonClickEventArgs);
@@ -593,7 +593,7 @@ public class ContentDialog : ContentControl
         {
             ContentDialogButton.Primary => ContentDialogResult.Primary,
             ContentDialogButton.Secondary => ContentDialogResult.Secondary,
-            _ => ContentDialogResult.None
+            _ => ContentDialogResult.None,
         };
 
         Hide(result);
@@ -629,6 +629,7 @@ public class ContentDialog : ContentControl
 
     private Size GetNewDialogSize(Size desiredSize)
     {
+        // TODO: Handle negative values
         var paddingWidth = Padding.Left + Padding.Right;
         var paddingHeight = Padding.Top + Padding.Bottom;
 

@@ -5,25 +5,24 @@
 
 namespace Wpf.Ui.Gallery.ViewModels.Pages.Text;
 
-public partial class AutoSuggestBoxViewModel : ObservableObject
+public partial class AutoSuggestBoxViewModel : ViewModel
 {
     [ObservableProperty]
-    private List<string> _autoSuggestBoxSuggestions =
-        new()
-        {
-            "John",
-            "Winston",
-            "Adrianna",
-            "Spencer",
-            "Phoebe",
-            "Lucas",
-            "Carl",
-            "Marissa",
-            "Brandon",
-            "Antoine",
-            "Arielle",
-            "Arielle",
-            "Jamie",
-            "Alexzander"
-        };
+    private List<string> _autoSuggestBoxSuggestions = new()
+    {
+        "John",
+        "Winston",
+        "Adrianna",
+        "Spencer",
+        "Phoebe",
+        "Lucas",
+        "Carl",
+        "Marissa",
+        "Brandon",
+        "Antoine",
+        "Arielle",
+        "Arielle",
+        "Jamie",
+        "Alexzander",
+    };
 }

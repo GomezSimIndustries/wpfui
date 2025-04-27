@@ -9,7 +9,7 @@ using Wpf.Ui.Gallery.Views.Pages.DateAndTime;
 
 namespace Wpf.Ui.Gallery.ViewModels.Pages.DateAndTime;
 
-public partial class DateAndTimeViewModel : ObservableObject
+public partial class DateAndTimeViewModel : ViewModel
 {
     [ObservableProperty]
     private ICollection<NavigationCard> _navigationCards = new ObservableCollection<NavigationCard>(
@@ -20,7 +20,7 @@ public partial class DateAndTimeViewModel : ObservableObject
                 Name = x.Name,
                 Icon = x.Icon,
                 Description = x.Description,
-                PageType = x.PageType
+                PageType = x.PageType,
             })
     );
 }

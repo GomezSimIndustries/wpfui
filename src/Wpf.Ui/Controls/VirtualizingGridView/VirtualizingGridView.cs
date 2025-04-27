@@ -3,6 +3,12 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+/* Based on VirtualizingWrapPanel created by S. Bäumlisberger licensed under MIT license.
+   https://github.com/sbaeumlisberger/VirtualizingWrapPanel
+
+   Copyright (C) S. Bäumlisberger
+   All Rights Reserved. */
+
 using System.Windows.Controls;
 using System.Windows.Data;
 
@@ -99,7 +105,7 @@ public class VirtualizingGridView : ListView
             {
                 Source = this,
                 Path = new PropertyPath(nameof(Orientation)),
-                Mode = BindingMode.OneWay
+                Mode = BindingMode.OneWay,
             }
         );
         factory.SetBinding(
@@ -108,7 +114,7 @@ public class VirtualizingGridView : ListView
             {
                 Source = this,
                 Path = new PropertyPath(nameof(SpacingMode)),
-                Mode = BindingMode.OneWay
+                Mode = BindingMode.OneWay,
             }
         );
         factory.SetBinding(
@@ -117,7 +123,7 @@ public class VirtualizingGridView : ListView
             {
                 Source = this,
                 Path = new PropertyPath(nameof(StretchItems)),
-                Mode = BindingMode.OneWay
+                Mode = BindingMode.OneWay,
             }
         );
 

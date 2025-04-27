@@ -3,13 +3,25 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using System.Runtime.InteropServices;
-
-namespace Wpf.Ui.Interop;
+// This Source Code is partially based on reverse engineering of the Windows Operating System,
+// and is intended for use on Windows systems only.
+// This Source Code is partially based on the source code provided by the .NET Foundation.
+//
+// NOTE:
+// I split unmanaged code stuff into the NativeMethods library.
+// If you have suggestions for the code below, please submit your changes there.
+// https://github.com/lepoco/nativemethods
+//
+// Windows Kits\10\Include\10.0.22000.0\um\dwmapi.h
 
 // ReSharper disable IdentifierTypo
 // ReSharper disable InconsistentNaming
 #pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+#pragma warning disable CA1060 // Move pinvokes to native methods class
+
+using System.Runtime.InteropServices;
+
+namespace Wpf.Ui.Interop;
 
 /// <summary>
 /// Desktop Window Manager (DWM).
@@ -23,7 +35,7 @@ internal static class Dwmapi
     {
         DWM_CLOAKED_APP = 0x00000001,
         DWM_CLOAKED_SHELL = 0x00000002,
-        DWM_CLOAKED_INHERITED = 0x00000004
+        DWM_CLOAKED_INHERITED = 0x00000004,
     }
 
     /// <summary>
@@ -110,7 +122,7 @@ internal static class Dwmapi
         /// This is set if app compat has blocked tabs for this window. Can be overridden per window by setting
         /// DWMWA_TABBING_ENABLED to TRUE. That does not override any other tabbing requirements.
         /// </summary>
-        DWMTWR_APP_COMPAT = 0x0200
+        DWMTWR_APP_COMPAT = 0x0200,
     }
 
     /// <summary>
@@ -122,7 +134,7 @@ internal static class Dwmapi
         DEFAULT = 0,
         DONOTROUND = 1,
         ROUND = 2,
-        ROUNDSMALL = 3
+        ROUNDSMALL = 3,
     }
 
     /// <summary>
@@ -154,7 +166,7 @@ internal static class Dwmapi
         /// <summary>
         /// Sets blurred wallpaper effect, like Mica without tint.
         /// </summary>
-        DWMSBT_TABBEDWINDOW = 4
+        DWMSBT_TABBEDWINDOW = 4,
     }
 
     /// <summary>
@@ -180,7 +192,7 @@ internal static class Dwmapi
         /// <summary>
         /// Sentinel value.
         /// </summary>
-        DWMNCRP_LAST
+        DWMNCRP_LAST,
     }
 
     /// <summary>
@@ -206,7 +218,7 @@ internal static class Dwmapi
         /// <summary>
         /// Sentinel value.
         /// </summary>
-        DWMFLIP3D_LAST
+        DWMFLIP3D_LAST,
     }
 
     /// <summary>
@@ -349,7 +361,7 @@ internal static class Dwmapi
         /// Indicates whether the window should use the Mica effect.
         /// <para>Windows 11 and above.</para>
         /// </summary>
-        DWMWA_MICA_EFFECT = 1029
+        DWMWA_MICA_EFFECT = 1029,
     }
 
     /// <summary>
@@ -422,7 +434,7 @@ internal static class Dwmapi
         DWMSC_HOLD,
         DWMSC_PENBARREL,
         DWMSC_NONE,
-        DWMSC_ALL
+        DWMSC_ALL,
     }
 
     /// <summary>
@@ -444,7 +456,7 @@ internal static class Dwmapi
         /// <summary>
         /// Sentinel value.
         /// </summary>
-        DWM_SOURCE_FRAME_SAMPLING_LAST
+        DWM_SOURCE_FRAME_SAMPLING_LAST,
     }
 
     /// <summary>
@@ -609,6 +621,22 @@ internal static class Dwmapi
     );
 
     /// <summary>
+    /// Sets the value of Desktop Window Manager (DWM) non-client rendering attributes for a window.
+    /// </summary>
+    /// <param name="hWnd">The handle to the window for which the attribute value is to be set.</param>
+    /// <param name="dwAttribute">A flag describing which value to set, specified as a value of the DWMWINDOWATTRIBUTE enumeration.</param>
+    /// <param name="pvAttribute">A pointer to an object containing the attribute value to set.</param>
+    /// <param name="cbAttribute">The size, in bytes, of the attribute value being set via the <c>pvAttribute</c> parameter.</param>
+    /// <returns>If the function succeeds, it returns <c>S_OK</c>. Otherwise, it returns an <c>HRESULT</c> error code.</returns>
+    [DllImport(Libraries.Dwmapi)]
+    public static extern int DwmSetWindowAttribute(
+        [In] IntPtr hWnd,
+        [In] DWMWINDOWATTRIBUTE dwAttribute,
+        [In] ref uint pvAttribute,
+        [In] int cbAttribute
+    );
+
+    /// <summary>
     /// Retrieves the current value of a specified Desktop Window Manager (DWM) attribute applied to a window. For programming guidance, and code examples, see Controlling non-client region rendering.
     /// </summary>
     /// <param name="hWnd">The handle to the window from which the attribute value is to be retrieved.</param>
@@ -649,3 +677,4 @@ internal static class Dwmapi
 }
 
 #pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
+#pragma warning restore CA1060 // Move pinvokes to native methods class

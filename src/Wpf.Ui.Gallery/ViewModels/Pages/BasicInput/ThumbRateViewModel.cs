@@ -7,7 +7,7 @@ using Wpf.Ui.Controls;
 
 namespace Wpf.Ui.Gallery.ViewModels.Pages.BasicInput;
 
-public partial class ThumbRateViewModel : ObservableObject
+public partial class ThumbRateViewModel : ViewModel
 {
     [ObservableProperty]
     private string _thumRateStateText = "Liked";
@@ -26,7 +26,7 @@ public partial class ThumbRateViewModel : ObservableObject
             {
                 ThumbRateState.Liked => "Liked",
                 ThumbRateState.Disliked => "Disliked",
-                _ => "None"
+                _ => "None",
             };
 
             ThumRateStateCodeText = $"<ui:ThumbRate State=\"{ThumRateStateText}\" />";

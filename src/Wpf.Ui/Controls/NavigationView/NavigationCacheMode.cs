@@ -2,7 +2,7 @@
 // If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
-//
+
 // Based on Windows UI Library
 // Copyright(c) Microsoft Corporation.All rights reserved.
 
@@ -27,5 +27,5 @@ public enum NavigationCacheMode
     /// <summary>
     /// The page is cached and the cached instance is reused for every visit regardless of the cache size for the frame.
     /// </summary>
-    Required
+    Required,
 }

@@ -28,7 +28,7 @@ public static class WindowBackdrop
             WindowBackdropType.Mica => Win32.Utilities.IsOSWindows11OrNewer,
             WindowBackdropType.Acrylic => Win32.Utilities.IsOSWindows7OrNewer,
             WindowBackdropType.None => true,
-            _ => false
+            _ => false,
         };
     }
 
@@ -38,7 +38,7 @@ public static class WindowBackdrop
     /// <param name="window">The window to which the backdrop effect will be applied.</param>
     /// <param name="backdropType">The type of backdrop effect to apply. Determines the visual appearance of the window's backdrop.</param>
     /// <returns><see langword="true"/> if the operation was successful; otherwise, <see langword="false"/>.</returns>
-    public static bool ApplyBackdrop(System.Windows.Window window, WindowBackdropType backdropType)
+    public static bool ApplyBackdrop(System.Windows.Window? window, WindowBackdropType backdropType)
     {
         if (window is null)
         {
@@ -117,8 +117,10 @@ public static class WindowBackdrop
         {
             WindowBackdropType.Auto => ApplyDwmwWindowAttrubute(hWnd, Dwmapi.DWMSBT.DWMSBT_AUTO),
             WindowBackdropType.Mica => ApplyDwmwWindowAttrubute(hWnd, Dwmapi.DWMSBT.DWMSBT_MAINWINDOW),
-            WindowBackdropType.Acrylic
-                => ApplyDwmwWindowAttrubute(hWnd, Dwmapi.DWMSBT.DWMSBT_TRANSIENTWINDOW),
+            WindowBackdropType.Acrylic => ApplyDwmwWindowAttrubute(
+                hWnd,
+                Dwmapi.DWMSBT.DWMSBT_TRANSIENTWINDOW
+            ),
             WindowBackdropType.Tabbed => ApplyDwmwWindowAttrubute(hWnd, Dwmapi.DWMSBT.DWMSBT_TABBEDWINDOW),
             _ => ApplyDwmwWindowAttrubute(hWnd, Dwmapi.DWMSBT.DWMSBT_DISABLE),
         };
@@ -216,6 +218,40 @@ public static class WindowBackdrop
         return true;
     }
 
+    public static bool RemoveTitlebarBackground(System.Windows.Window? window)
+    {
+        if (window is null)
+        {
+            return false;
+        }
+
+        IntPtr windowHandle = new WindowInteropHelper(window).Handle;
+
+        if (windowHandle == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        HwndSource? windowSource = HwndSource.FromHwnd(windowHandle);
+
+        // Remove background from client area
+        if (windowSource?.Handle != IntPtr.Zero && windowSource?.CompositionTarget != null)
+        {
+            // NOTE: https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute
+            // Specifying DWMWA_COLOR_DEFAULT (value 0xFFFFFFFF) for the color will reset the window back to using the system's default behavior for the caption color.
+            uint titlebarPvAttribute = 0xFFFFFFFE;
+
+            _ = Dwmapi.DwmSetWindowAttribute(
+                windowSource.Handle,
+                Dwmapi.DWMWINDOWATTRIBUTE.DWMWA_CAPTION_COLOR,
+                ref titlebarPvAttribute,
+                sizeof(uint)
+            );
+        }
+
+        return true;
+    }
+
     private static bool ApplyDwmwWindowAttrubute(IntPtr hWnd, Dwmapi.DWMSBT dwmSbt)
     {
         if (hWnd == IntPtr.Zero)
@@ -228,7 +264,7 @@ public static class WindowBackdrop
             return false;
         }
 
-        var backdropPvAttribute = (int)dwmSbt;
+        int backdropPvAttribute = (int)dwmSbt;
 
         var dwmApiResult = Dwmapi.DwmSetWindowAttribute(
             hWnd,
@@ -300,18 +336,17 @@ public static class WindowBackdrop
     {
         return ApplicationThemeManager.GetAppTheme() switch
         {
-            ApplicationTheme.HighContrast
-                => ApplicationThemeManager.GetSystemTheme() switch
-                {
-                    SystemTheme.HC1 => new SolidColorBrush(Color.FromArgb(0xFF, 0x2D, 0x32, 0x36)),
-                    SystemTheme.HC2 => new SolidColorBrush(Color.FromArgb(0xFF, 0x00, 0x00, 0x00)),
-                    SystemTheme.HCBlack => new SolidColorBrush(Color.FromArgb(0xFF, 0x20, 0x20, 0x20)),
-                    SystemTheme.HCWhite => new SolidColorBrush(Color.FromArgb(0xFF, 0x20, 0x20, 0x20)),
-                    _ => new SolidColorBrush(Color.FromArgb(0xFF, 0xFF, 0xFA, 0xEF)),
-                },
+            ApplicationTheme.HighContrast => ApplicationThemeManager.GetSystemTheme() switch
+            {
+                SystemTheme.HC1 => new SolidColorBrush(Color.FromArgb(0xFF, 0x2D, 0x32, 0x36)),
+                SystemTheme.HC2 => new SolidColorBrush(Color.FromArgb(0xFF, 0x00, 0x00, 0x00)),
+                SystemTheme.HCBlack => new SolidColorBrush(Color.FromArgb(0xFF, 0x20, 0x20, 0x20)),
+                SystemTheme.HCWhite => new SolidColorBrush(Color.FromArgb(0xFF, 0x20, 0x20, 0x20)),
+                _ => new SolidColorBrush(Color.FromArgb(0xFF, 0xFF, 0xFA, 0xEF)),
+            },
             ApplicationTheme.Dark => new SolidColorBrush(Color.FromArgb(0xFF, 0x20, 0x20, 0x20)),
             ApplicationTheme.Light => new SolidColorBrush(Color.FromArgb(0xFF, 0xFA, 0xFA, 0xFA)),
-            _ => new SolidColorBrush(Color.FromArgb(0xFF, 0xFA, 0xFA, 0xFA))
+            _ => new SolidColorBrush(Color.FromArgb(0xFF, 0xFA, 0xFA, 0xFA)),
         };
     }
 }

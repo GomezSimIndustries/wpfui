@@ -20,29 +20,26 @@ namespace $safeprojectname$
         // https://docs.microsoft.com/dotnet/core/extensions/logging
         private static readonly IHost _host = Host
             .CreateDefaultBuilder()
-            .ConfigureAppConfiguration(c => { c.SetBasePath(Path.GetDirectoryName(Assembly.GetEntryAssembly()!.Location)); })
+            .ConfigureAppConfiguration(c => { c.SetBasePath(Path.GetDirectoryName(AppContext.BaseDirectory)); })
             .ConfigureServices((context, services) =>
             {
                 throw new NotImplementedException("No service or window was registered.");
             }).Build();
 
         /// <summary>
-        /// Gets registered service.
+        /// Gets services.
         /// </summary>
-        /// <typeparam name="T">Type of the service to get.</typeparam>
-        /// <returns>Instance of the service or <see langword="null"/>.</returns>
-        public static T GetService<T>()
-            where T : class
+        public static IServiceProvider Services
         {
-            return _host.Services.GetService(typeof(T)) as T;
+            get { return _host.Services; }
         }
 
         /// <summary>
         /// Occurs when the application is loading.
         /// </summary>
-        private void OnStartup(object sender, StartupEventArgs e)
+        private async void OnStartup(object sender, StartupEventArgs e)
         {
-            _host.Start();
+            await _host.StartAsync();
         }
 
         /// <summary>

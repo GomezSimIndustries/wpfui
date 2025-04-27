@@ -3,6 +3,15 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+/* This Source Code is partially based on reverse engineering of the Windows Operating System,
+   and is intended for use on Windows systems only.
+   This Source Code is partially based on the source code provided by the .NET Foundation.
+
+   NOTE:
+   I split unmanaged code stuff into the NativeMethods library.
+   If you have suggestions for the code below, please submit your changes there.
+   https://github.com/lepoco/nativemethods */
+
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -11,6 +20,7 @@ namespace Wpf.Ui.Interop;
 // ReSharper disable IdentifierTypo
 // ReSharper disable InconsistentNaming
 #pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+#pragma warning disable CA1060 // Move pinvokes to native methods class
 
 internal static class UxTheme
 {
@@ -165,3 +175,4 @@ internal static class UxTheme
 }
 
 #pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
+#pragma warning restore CA1060 // Move pinvokes to native methods class

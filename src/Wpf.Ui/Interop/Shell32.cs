@@ -3,15 +3,25 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
-
-namespace Wpf.Ui.Interop;
+// This Source Code is partially based on reverse engineering of the Windows Operating System,
+// and is intended for use on Windows systems only.
+// This Source Code is partially based on the source code provided by the .NET Foundation.
+//
+// NOTE:
+// I split unmanaged code stuff into the NativeMethods library.
+// If you have suggestions for the code below, please submit your changes there.
+// https://github.com/lepoco/nativemethods
 
 // ReSharper disable IdentifierTypo
 // ReSharper disable InconsistentNaming
 #pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
 #pragma warning disable SA1401 // Fields should be private
+#pragma warning disable CA1060 // Move pinvokes to native methods class
+
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+
+namespace Wpf.Ui.Interop;
 
 /// <summary>
 /// The Windows UI provides users with access to a wide variety of objects necessary to run applications and manage the operating system.
@@ -179,3 +189,4 @@ internal static class Shell32
 
 #pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
 #pragma warning restore SA1401 // Fields should be private
+#pragma warning restore CA1060 // Move pinvokes to native methods class

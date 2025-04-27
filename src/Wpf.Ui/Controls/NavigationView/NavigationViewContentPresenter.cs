@@ -3,9 +3,12 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+/* Based on Windows UI Library */
+
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Navigation;
+using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Animations;
 
 // ReSharper disable once CheckNamespace
@@ -137,9 +140,21 @@ public class NavigationViewContentPresenter : Frame
         if (e.ChangedButton is MouseButton.XButton1 or MouseButton.XButton2)
         {
             e.Handled = true;
+            return;
         }
 
         base.OnMouseDown(e);
+    }
+
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.F5)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        base.OnPreviewKeyDown(e);
     }
 
     protected virtual void OnNavigating(System.Windows.Navigation.NavigatingCancelEventArgs eventArgs)
@@ -181,47 +196,48 @@ public class NavigationViewContentPresenter : Frame
 
     private static void NotifyContentAboutNavigatingTo(object content)
     {
-        if (content is INavigationAware navigationAwareNavigationContent)
-        {
-            navigationAwareNavigationContent.OnNavigatedTo();
-        }
-
-        if (
-            content is INavigableView<object>
-            {
-                ViewModel: INavigationAware navigationAwareNavigableViewViewModel
-            }
-        )
-        {
-            navigationAwareNavigableViewViewModel.OnNavigatedTo();
-        }
-
-        if (content is FrameworkElement { DataContext: INavigationAware navigationAwareCurrentContent })
-        {
-            navigationAwareCurrentContent.OnNavigatedTo();
-        }
+        NotifyContentAboutNavigating(content, navigationAware => navigationAware.OnNavigatedToAsync());
     }
 
     private static void NotifyContentAboutNavigatingFrom(object content)
     {
-        if (content is INavigationAware navigationAwareNavigationContent)
+        NotifyContentAboutNavigating(content, navigationAware => navigationAware.OnNavigatedFromAsync());
+    }
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "ReSharper",
+        "SuspiciousTypeConversion.Global",
+        Justification = "The library user might make a class inherit from both FrameworkElement and INavigationAware at the same time."
+    )]
+    private static void NotifyContentAboutNavigating(object content, Func<INavigationAware, Task> function)
+    {
+        async void PerformNotify(INavigationAware navigationAware)
         {
-            navigationAwareNavigationContent.OnNavigatedFrom();
+            await function(navigationAware).ConfigureAwait(false);
         }
 
-        if (
-            content is INavigableView<object>
-            {
-                ViewModel: INavigationAware navigationAwareNavigableViewViewModel
-            }
-        )
+        switch (content)
         {
-            navigationAwareNavigableViewViewModel.OnNavigatedFrom();
-        }
+            // The order in which the OnNavigatedToAsync/OnNavigatedFromAsync methods of View and ViewModel are called
+            // is not guaranteed
+            case INavigationAware navigationAwareNavigationContent:
+                PerformNotify(navigationAwareNavigationContent);
+                if (
+                    navigationAwareNavigationContent
+                        is FrameworkElement { DataContext: INavigationAware viewModel }
+                    && !ReferenceEquals(viewModel, navigationAwareNavigationContent)
+                )
+                {
+                    PerformNotify(viewModel);
+                }
 
-        if (content is FrameworkElement { DataContext: INavigationAware navigationAwareCurrentContent })
-        {
-            navigationAwareCurrentContent.OnNavigatedFrom();
+                break;
+            case INavigableView<object> { ViewModel: INavigationAware navigationAwareNavigableViewViewModel }:
+                PerformNotify(navigationAwareNavigableViewViewModel);
+                break;
+            case FrameworkElement { DataContext: INavigationAware navigationAwareCurrentContent }:
+                PerformNotify(navigationAwareCurrentContent);
+                break;
         }
     }
 }

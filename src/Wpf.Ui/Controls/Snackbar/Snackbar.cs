@@ -3,6 +3,8 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+/* TODO: Refactor as popup, detach from the window renderer */
+
 using System.Windows.Controls;
 using Wpf.Ui.Input;
 

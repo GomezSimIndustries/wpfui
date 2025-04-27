@@ -9,7 +9,7 @@ using Wpf.Ui.Gallery.Models;
 
 namespace Wpf.Ui.Gallery.ViewModels.Pages.DesignGuidance;
 
-public partial class IconsViewModel : ObservableObject, INavigationAware
+public partial class IconsViewModel : ViewModel
 {
     private int _selectedIconId = 0;
 
@@ -73,7 +73,7 @@ public partial class IconsViewModel : ObservableObject, INavigationAware
                         Name = iconName,
                         Icon = icon,
                         Symbol = ((char)icon).ToString(),
-                        Code = ((int)icon).ToString("X4")
+                        Code = ((int)icon).ToString("X4"),
                     }
                 );
             }
@@ -90,10 +90,6 @@ public partial class IconsViewModel : ObservableObject, INavigationAware
             }
         });
     }
-
-    public void OnNavigatedTo() { }
-
-    public void OnNavigatedFrom() { }
 
     [RelayCommand]
     public void OnIconSelected(int parameter)

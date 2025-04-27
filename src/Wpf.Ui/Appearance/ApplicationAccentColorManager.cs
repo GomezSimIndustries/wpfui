@@ -3,7 +3,6 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using Wpf.Ui.Extensions;
 using Wpf.Ui.Interop;
 
 namespace Wpf.Ui.Appearance;
@@ -41,7 +40,7 @@ public static class ApplicationAccentColorManager
     {
         get
         {
-            var resource = UiApplication.Current.Resources["SystemAccentColor"];
+            object? resource = UiApplication.Current.Resources["SystemAccentColor"];
 
             if (resource is Color color)
             {
@@ -64,7 +63,7 @@ public static class ApplicationAccentColorManager
     {
         get
         {
-            var resource = UiApplication.Current.Resources["SystemAccentColorPrimary"];
+            object? resource = UiApplication.Current.Resources["SystemAccentColorPrimary"];
 
             if (resource is Color color)
             {
@@ -87,7 +86,7 @@ public static class ApplicationAccentColorManager
     {
         get
         {
-            var resource = UiApplication.Current.Resources["SystemAccentColorSecondary"];
+            object? resource = UiApplication.Current.Resources["SystemAccentColorSecondary"];
 
             if (resource is Color color)
             {
@@ -110,7 +109,7 @@ public static class ApplicationAccentColorManager
     {
         get
         {
-            var resource = UiApplication.Current.Resources["SystemAccentColorTertiary"];
+            object? resource = UiApplication.Current.Resources["SystemAccentColorTertiary"];
 
             if (resource is Color color)
             {

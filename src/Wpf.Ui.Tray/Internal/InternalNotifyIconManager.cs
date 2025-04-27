@@ -3,11 +3,9 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Interop;
 using System.Windows.Media;
 using Wpf.Ui.Appearance;
 
@@ -105,6 +103,12 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
     }
 
     /// <inheritdoc />
+    public virtual bool ModifyToolTip()
+    {
+        return TrayManager.ModifyToolTip(this);
+    }
+
+    /// <inheritdoc />
     public virtual bool Unregister()
     {
         return TrayManager.Unregister(this);
@@ -124,11 +128,12 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
     /// </summary>
     protected virtual void FocusApp()
     {
-        System.Diagnostics.Debug.WriteLine(
+        Debug.WriteLine(
             $"INFO | {typeof(TrayHandler)} invoked {nameof(FocusApp)} method.",
             "Wpf.Ui.NotifyIcon"
         );
-        Window mainWindow = Application.Current.MainWindow;
+
+        Window? mainWindow = Application.Current.MainWindow;
 
         if (mainWindow == null)
         {
@@ -161,7 +166,7 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
     /// </summary>
     protected virtual void OpenMenu()
     {
-        System.Diagnostics.Debug.WriteLine(
+        Debug.WriteLine(
             $"INFO | {typeof(TrayHandler)} invoked {nameof(OpenMenu)} method.",
             "Wpf.Ui.NotifyIcon"
         );
@@ -172,7 +177,7 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
         }
 
         // Without setting the handler window at the front, menu may appear behind the taskbar
-        Interop.User32.SetForegroundWindow(HookWindow.Handle);
+        _ = Interop.User32.SetForegroundWindow(HookWindow.Handle);
         ContextMenuService.SetPlacement(ContextMenu, PlacementMode.MousePoint);
 
         // ContextMenu.ApplyMica();
@@ -254,7 +259,7 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
             "Wpf.Ui.NotifyIcon"
         );
 
-        Unregister();
+        _ = Unregister();
     }
 
     /// <inheritdoc />

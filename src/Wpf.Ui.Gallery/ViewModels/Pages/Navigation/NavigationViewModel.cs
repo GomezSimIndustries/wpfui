@@ -9,7 +9,7 @@ using Wpf.Ui.Gallery.Views.Pages.Navigation;
 
 namespace Wpf.Ui.Gallery.ViewModels.Pages.Navigation;
 
-public partial class NavigationViewModel : ObservableObject
+public partial class NavigationViewModel : ViewModel
 {
     [ObservableProperty]
     private ICollection<NavigationCard> _navigationCards = new ObservableCollection<NavigationCard>(
@@ -20,7 +20,7 @@ public partial class NavigationViewModel : ObservableObject
                 Name = x.Name,
                 Icon = x.Icon,
                 Description = x.Description,
-                PageType = x.PageType
+                PageType = x.PageType,
             })
     );
 }

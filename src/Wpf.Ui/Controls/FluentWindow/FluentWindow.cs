@@ -199,6 +199,8 @@ public class FluentWindow : System.Windows.Window
         if (WindowBackdrop.IsSupported(newValue) && WindowBackdrop.RemoveBackground(this))
         {
             _ = WindowBackdrop.ApplyBackdrop(this, newValue);
+
+            _ = WindowBackdrop.RemoveTitlebarBackground(this);
         }
     }
 
@@ -239,7 +241,7 @@ public class FluentWindow : System.Windows.Window
                 CornerRadius = default,
                 GlassFrameThickness = new Thickness(-1),
                 ResizeBorderThickness = ResizeMode == ResizeMode.NoResize ? default : new Thickness(4),
-                UseAeroCaptionButtons = false
+                UseAeroCaptionButtons = false,
             }
         );
 

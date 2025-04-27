@@ -9,7 +9,7 @@ using Wpf.Ui.Gallery.Views.Pages.BasicInput;
 
 namespace Wpf.Ui.Gallery.ViewModels.Pages.BasicInput;
 
-public partial class BasicInputViewModel : ObservableObject
+public partial class BasicInputViewModel : ViewModel
 {
     [ObservableProperty]
     private ICollection<NavigationCard> _navigationCards = new ObservableCollection<NavigationCard>(
@@ -20,7 +20,7 @@ public partial class BasicInputViewModel : ObservableObject
                 Name = x.Name,
                 Icon = x.Icon,
                 Description = x.Description,
-                PageType = x.PageType
+                PageType = x.PageType,
             })
     );
 }

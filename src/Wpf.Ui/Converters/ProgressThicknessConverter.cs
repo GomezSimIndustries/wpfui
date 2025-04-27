@@ -3,6 +3,8 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+/* TODO: It's too hardcoded, we should define better formula. */
+
 using System.Windows.Data;
 
 namespace Wpf.Ui.Converters;

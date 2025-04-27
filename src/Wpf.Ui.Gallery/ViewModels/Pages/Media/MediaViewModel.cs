@@ -9,7 +9,7 @@ using Wpf.Ui.Gallery.Views.Pages.Media;
 
 namespace Wpf.Ui.Gallery.ViewModels.Pages.Media;
 
-public partial class MediaViewModel : ObservableObject
+public partial class MediaViewModel : ViewModel
 {
     [ObservableProperty]
     private ICollection<NavigationCard> _navigationCards = new ObservableCollection<NavigationCard>(
@@ -20,7 +20,7 @@ public partial class MediaViewModel : ObservableObject
                 Name = x.Name,
                 Icon = x.Icon,
                 Description = x.Description,
-                PageType = x.PageType
+                PageType = x.PageType,
             })
     );
 }

@@ -3,6 +3,8 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+/* This Code is based on a StackOverflow-Answer: https://stackoverflow.com/a/56736232/9759874 */
+
 using System.Reflection;
 using System.Windows.Threading;
 
@@ -40,13 +42,10 @@ public partial class ContextMenuLoader : ResourceDictionary
             "System.Windows.Documents.TextEditorContextMenu+EditorContextMenu, " + currentAssembly
         );
 
-        ResourceDictionary resourceDict =
-            new()
-            {
-                Source = new Uri(
-                    "pack://application:,,,/Wpf.Ui;component/Controls/ContextMenu/ContextMenu.xaml"
-                )
-            };
+        ResourceDictionary resourceDict = new()
+        {
+            Source = new Uri("pack://application:,,,/Wpf.Ui;component/Controls/ContextMenu/ContextMenu.xaml"),
+        };
 
         Style contextMenuStyle = (Style)resourceDict["UiContextMenu"];
 

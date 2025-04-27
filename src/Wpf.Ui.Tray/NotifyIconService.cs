@@ -3,10 +3,11 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable
 
 namespace Wpf.Ui.Tray;
 
@@ -120,3 +121,5 @@ public class NotifyIconService : INotifyIconService
         internalNotifyIconManager.MiddleDoubleClick += OnMiddleDoubleClick;
     }
 }
+
+#pragma warning restore CA1001 // Types that own disposable fields should be disposable

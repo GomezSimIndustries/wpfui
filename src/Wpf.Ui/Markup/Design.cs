@@ -20,7 +20,8 @@ namespace Wpf.Ui.Markup;
 /// </example>
 public static class Design
 {
-    private static readonly string DesignProcessName = "devenv";
+    private const string DesignProcessName = "devenv";
+
     private static bool? _inDesignMode;
 
     /// <summary>

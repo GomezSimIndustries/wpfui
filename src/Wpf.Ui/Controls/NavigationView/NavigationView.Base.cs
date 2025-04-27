@@ -3,6 +3,8 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+/* Based on Windows UI Library https://docs.microsoft.com/en-us/uwp/api/windows.ui.xaml.controls.navigationview?view=winrt-22621 */
+
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -65,7 +67,7 @@ public partial class NavigationView : System.Windows.Controls.Control, INavigati
     private readonly ObservableCollection<NavigationViewBreadcrumbItem> _breadcrumbBarItems = [];
 
     private static readonly Thickness TitleBarPaneOpenMarginDefault = new(35, 0, 0, 0);
-    private static readonly Thickness TitleBarPaneCompactMarginDefault = new(55, 0, 0, 0);
+    private static readonly Thickness TitleBarPaneCompactMarginDefault = new(35, 0, 0, 0);
     private static readonly Thickness AutoSuggestBoxMarginDefault = new(8, 8, 8, 16);
     private static readonly Thickness FrameMarginDefault = new(0, 50, 0, 0);
 

@@ -3,6 +3,8 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+/* This Source Code is partially based on the source code provided by the .NET Foundation. */
+
 namespace Wpf.Ui.Hardware;
 
 /// <summary>

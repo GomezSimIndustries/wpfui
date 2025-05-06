@@ -10,7 +10,7 @@
     <Style TargetType="{x:Type ProgressBar}">
         <Setter Property="Foreground" Value="{DynamicResource ProgressBarForeground}" />
         <Setter Property="Background" Value="{DynamicResource ProgressBarBackground}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource ProgressBarBorderBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ProgressBarBackground}" />
         <Setter Property="Height" Value="4" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -44,7 +44,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="1.5" />
+                            CornerRadius="2" />
                         <Rectangle Name="PART_Track" Margin="1,1,1,1" />
                         <Border
                             Name="PART_Indicator"

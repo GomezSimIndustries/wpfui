@@ -126,20 +126,28 @@ public class FontIcon : IconElement
             }
         }
 
-        TextBlock = new TextBlock
+        TextBlock textBlock = new TextBlock
         {
             Style = null,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Center,
             TextAlignment = TextAlignment.Center,
             FontFamily = FontFamily,
-            FontSize = FontSize,
             FontStyle = FontStyle,
             FontWeight = FontWeight,
             Text = Glyph,
             Visibility = Visibility.Visible,
             Focusable = false,
         };
+
+        var dpi = VisualTreeHelper.GetDpi(textBlock);
+        textBlock.FontSize = Math.Round(FontSize * dpi.DpiScaleY) / dpi.DpiScaleY;
+
+        TextOptions.SetTextRenderingMode(textBlock, TextRenderingMode.Grayscale);
+        TextOptions.SetTextFormattingMode(textBlock, TextFormattingMode.Display);
+        TextOptions.SetTextHintingMode(textBlock, TextHintingMode.Fixed);
+
+        TextBlock = textBlock;
 
         SetCurrentValue(FocusableProperty, false);
 

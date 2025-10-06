@@ -106,6 +106,14 @@ public class NavigationViewItem
         new PropertyMetadata(null)
     );
 
+    /// <summary>Identifies the <see cref="TargetDataContext"/> dependency property.</summary>
+    public static readonly DependencyProperty TargetDataContextProperty = DependencyProperty.Register(
+        nameof(TargetDataContext),
+        typeof(object),
+        typeof(NavigationViewItem),
+        new PropertyMetadata(null)
+    );
+
     /// <summary>Identifies the <see cref="InfoBadge"/> dependency property.</summary>
     public static readonly DependencyProperty InfoBadgeProperty = DependencyProperty.Register(
         nameof(InfoBadge),
@@ -202,6 +210,13 @@ public class NavigationViewItem
         set => SetValue(TargetPageTypeProperty, value);
     }
 
+    /// <inheritdoc />
+    public object? TargetDataContext
+    {
+        get => (object?)GetValue(TargetDataContextProperty);
+        set => SetValue(TargetDataContextProperty, value);
+    }
+
     public InfoBadge? InfoBadge
     {
         get => (InfoBadge?)GetValue(InfoBadgeProperty);
@@ -249,6 +264,45 @@ public class NavigationViewItem
         var menuItems = new ObservableCollection<object>();
         menuItems.CollectionChanged += OnMenuItems_CollectionChanged;
         SetValue(MenuItemsPropertyKey, menuItems);
+    }
+    
+    public NavigationViewItem(
+        string? content = null,
+        SymbolRegular? icon = null,
+        Type? targetPageType = null,
+        object? targetDataContext = null,
+        IList? menuItemsSource = null)
+        : this()
+    {
+        if (content != null)
+        {
+            this.SetValue(ContentProperty, content);
+        }
+
+        if (icon.HasValue)
+        {
+            this.SetValue(IconProperty, new SymbolIcon
+            {
+                Symbol = icon.Value,
+            });
+        }
+
+        if (targetPageType != null)
+        {
+            this.SetValue(TargetPageTypeProperty, targetPageType);
+        }
+
+        if (targetDataContext != null)
+        {
+            this.SetValue(TargetDataContextProperty, targetDataContext);
+        }
+
+        if (menuItemsSource == null)
+        {
+            return;
+        }
+
+        this.SetValue(MenuItemsSourceProperty, menuItemsSource);
     }
 
     public NavigationViewItem(Type targetPageType)
@@ -452,6 +506,8 @@ public class NavigationViewItem
         {
             item.NavigationViewItemParent = this;
         }
+
+        NavigationView.GetNavigationParent(this)?.AddItemsToDictionaries(MenuItems);
     }
 
     private static void OnMenuItemsSourceChanged(DependencyObject? d, DependencyPropertyChangedEventArgs e)

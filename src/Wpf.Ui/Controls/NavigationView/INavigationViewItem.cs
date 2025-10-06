@@ -62,6 +62,11 @@ public interface INavigationViewItem
     /// </summary>
     Type? TargetPageType { get; set; }
 
+    /// <summary>
+    /// Gets or sets the target data context to be used when navigating to the page.
+    /// </summary>
+    object? TargetDataContext { get; set; }
+
     InfoBadge? InfoBadge { get; set; }
 
     /// <summary>

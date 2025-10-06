@@ -232,7 +232,7 @@ public partial class NavigationView : System.Windows.Controls.Control, INavigati
     {
         OnItemInvoked();
 
-        _ = NavigateInternal(navigationViewItem);
+        _ = NavigateInternal(navigationViewItem, navigationViewItem.TargetDataContext);
     }
 
     protected virtual void BreadcrumbBarOnItemClicked(
@@ -323,7 +323,7 @@ public partial class NavigationView : System.Windows.Controls.Control, INavigati
         _ = NavigateToMenuItemFromAutoSuggestBox(FooterMenuItems, element);
     }
 
-    protected virtual void AddItemsToDictionaries(IEnumerable list)
+    internal virtual void AddItemsToDictionaries(IEnumerable list)
     {
         foreach (NavigationViewItem singleNavigationViewItem in list.OfType<NavigationViewItem>())
         {

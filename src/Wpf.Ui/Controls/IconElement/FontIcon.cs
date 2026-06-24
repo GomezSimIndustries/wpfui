@@ -110,6 +110,11 @@ public class FontIcon : IconElement
 
     protected TextBlock? TextBlock { get; set; }
 
+    public FontIcon()
+    {
+        SetCurrentValue(FontSizeProperty, UiApplication.Current.Resources["DefaultIconFontSize"]);
+    }
+
     protected override UIElement InitializeChildren()
     {
         if (FontSize.Equals(SystemFonts.MessageFontSize))
@@ -126,7 +131,7 @@ public class FontIcon : IconElement
             }
         }
 
-        TextBlock textBlock = new TextBlock
+        TextBlock = new TextBlock
         {
             Style = null,
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -140,14 +145,12 @@ public class FontIcon : IconElement
             Focusable = false,
         };
 
-        var dpi = VisualTreeHelper.GetDpi(textBlock);
-        textBlock.FontSize = Math.Round(FontSize * dpi.DpiScaleY) / dpi.DpiScaleY;
+        var dpi = VisualTreeHelper.GetDpi(TextBlock);
+        TextBlock.SetCurrentValue(System.Windows.Controls.TextBlock.FontSizeProperty, Math.Round(FontSize * dpi.DpiScaleY) / dpi.DpiScaleY);
 
-        TextOptions.SetTextRenderingMode(textBlock, TextRenderingMode.Grayscale);
-        TextOptions.SetTextFormattingMode(textBlock, TextFormattingMode.Display);
-        TextOptions.SetTextHintingMode(textBlock, TextHintingMode.Fixed);
-
-        TextBlock = textBlock;
+        TextOptions.SetTextRenderingMode(TextBlock, TextRenderingMode.Grayscale);
+        TextOptions.SetTextFormattingMode(TextBlock, TextFormattingMode.Display);
+        TextOptions.SetTextHintingMode(TextBlock, TextHintingMode.Fixed);
 
         SetCurrentValue(FocusableProperty, false);
 

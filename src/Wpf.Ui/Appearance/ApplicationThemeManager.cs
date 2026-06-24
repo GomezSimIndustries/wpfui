@@ -73,7 +73,8 @@ public static class ApplicationThemeManager
             ApplicationAccentColorManager.Apply(
                 ApplicationAccentColorManager.GetColorizationColor(),
                 applicationTheme,
-                false
+                systemGlassColor: false,
+                systemAccentColor: true
             );
         }
 
@@ -92,7 +93,7 @@ public static class ApplicationThemeManager
                 themeDictionaryName = "Dark";
                 break;
             case ApplicationTheme.HighContrast:
-                themeDictionaryName = ApplicationThemeManager.GetSystemTheme() switch
+                themeDictionaryName = GetSystemTheme() switch
                 {
                     SystemTheme.HC1 => "HC1",
                     SystemTheme.HC2 => "HC2",

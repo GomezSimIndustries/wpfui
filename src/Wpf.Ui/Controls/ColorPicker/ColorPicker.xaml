@@ -3,7 +3,7 @@
     If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
     Copyright (C) Leszek Pomianowski and WPF UI Contributors.
     All Rights Reserved.
-    
+
     Based on Microsoft XAML for Win UI
     Copyright (c) Microsoft Corporation. All Rights Reserved.
 -->
@@ -13,5 +13,505 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="clr-namespace:Wpf.Ui.Controls"
     xmlns:converters="clr-namespace:Wpf.Ui.Converters"
-    xmlns:system="clr-namespace:System;assembly=mscorlib" />
+    xmlns:system="clr-namespace:System;assembly=mscorlib">
 
+    <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+    <converters:ColorToBrushConverter x:Key="ColorToBrushConverter" />
+
+    <!-- ColorSlider Style -->
+    <Style TargetType="{x:Type controls:ColorSlider}">
+        <Setter Property="Minimum" Value="0" />
+        <Setter Property="Maximum" Value="100" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="IsSnapToTickEnabled" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:ColorSlider}">
+                    <Grid>
+                        <!-- Checkerboard pattern (for alpha sliders) -->
+                        <Border x:Name="CheckerboardBorder"
+                                Height="12"
+                                CornerRadius="6"
+                                ClipToBounds="True"
+                                Visibility="Collapsed">
+                            <Border.Background>
+                                <DrawingBrush TileMode="Tile" Viewport="0,0,8,8" ViewportUnits="Absolute">
+                                    <DrawingBrush.Drawing>
+                                        <DrawingGroup>
+                                            <GeometryDrawing Brush="#FFFFFF">
+                                                <GeometryDrawing.Geometry>
+                                                    <RectangleGeometry Rect="0,0,8,8" />
+                                                </GeometryDrawing.Geometry>
+                                            </GeometryDrawing>
+                                            <GeometryDrawing Brush="#E0E0E0">
+                                                <GeometryDrawing.Geometry>
+                                                    <GeometryGroup>
+                                                        <RectangleGeometry Rect="0,0,4,4" />
+                                                        <RectangleGeometry Rect="4,4,4,4" />
+                                                    </GeometryGroup>
+                                                </GeometryDrawing.Geometry>
+                                            </GeometryDrawing>
+                                        </DrawingGroup>
+                                    </DrawingBrush.Drawing>
+                                </DrawingBrush>
+                            </Border.Background>
+                        </Border>
+
+                        <!-- Gradient track -->
+                        <Border Height="12" CornerRadius="6" ClipToBounds="True">
+                            <Rectangle x:Name="PART_TrackBackground"
+                                       RadiusX="6" RadiusY="6" />
+                        </Border>
+
+                        <!-- Slider track overlay for thumb positioning -->
+                        <Track x:Name="PART_Track"
+                               Margin="6,0">
+                            <Track.Thumb>
+                                <Thumb Width="20" Height="20">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Grid>
+                                                <Ellipse Width="20" Height="20"
+                                                         Fill="White">
+                                                    <Ellipse.Effect>
+                                                        <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.3" />
+                                                    </Ellipse.Effect>
+                                                </Ellipse>
+                                                <Ellipse Width="14" Height="14"
+                                                         Stroke="{DynamicResource ControlElevationBorderBrush}"
+                                                         StrokeThickness="1"
+                                                         Fill="White" />
+                                            </Grid>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding ShowCheckerboard, RelativeSource={RelativeSource Self}}" Value="True">
+                            <Setter TargetName="CheckerboardBorder" Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Palette swatch button style -->
+    <Style x:Key="ColorPickerPaletteSwatchStyle" TargetType="Button">
+        <Setter Property="Width" Value="22" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Margin" Value="1" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="SwatchBorder"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="3"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource ControlElevationBorderBrush}">
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="SwatchBorder" Property="BorderBrush" Value="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                            <Setter TargetName="SwatchBorder" Property="BorderThickness" Value="2" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Main ColorPicker Style -->
+    <Style TargetType="{x:Type controls:ColorPicker}">
+        <Setter Property="Width" Value="280" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:ColorPicker}">
+                    <Border Background="{DynamicResource FlyoutBackground}"
+                            BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="12">
+                        <StackPanel>
+
+                            <!-- 1. Color Spectrum -->
+                            <controls:ColorSpectrum x:Name="PART_ColorSpectrum"
+                                                    Height="200"
+                                                    MinHue="{TemplateBinding MinHue}"
+                                                    MaxHue="{TemplateBinding MaxHue}"
+                                                    MinSaturation="{TemplateBinding MinSaturation}"
+                                                    MaxSaturation="{TemplateBinding MaxSaturation}"
+                                                    Visibility="{TemplateBinding IsColorSpectrumVisible, Converter={StaticResource BoolToVisConverter}}"
+                                                    Margin="0,0,0,10" />
+
+                            <!-- 2. Value Slider -->
+                            <Grid Visibility="{TemplateBinding IsColorSliderVisible, Converter={StaticResource BoolToVisConverter}}"
+                                  Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="Value"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"
+                                           Width="48" />
+                                <controls:ColorSlider x:Name="PART_ValueSlider"
+                                                      Grid.Column="1"
+                                                      Minimum="0" Maximum="100" />
+                            </Grid>
+
+                            <!-- 3. Alpha Slider (visible when IsAlphaEnabled) -->
+                            <Grid x:Name="AlphaSliderRow"
+                                  Visibility="Collapsed"
+                                  Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="Opacity"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"
+                                           Width="48" />
+                                <controls:ColorSlider x:Name="PART_AlphaSlider"
+                                                      Grid.Column="1"
+                                                      Minimum="0" Maximum="255"
+                                                      ShowCheckerboard="True" />
+                            </Grid>
+
+                            <!-- 4. Color Preview -->
+                            <Grid Visibility="{TemplateBinding IsColorPreviewVisible, Converter={StaticResource BoolToVisConverter}}"
+                                  Height="32"
+                                  Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Current color -->
+                                <Border x:Name="PART_ColorPreview"
+                                        Grid.Column="0"
+                                        CornerRadius="4,0,0,4"
+                                        BorderThickness="1,1,0,1"
+                                        BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                        Background="{Binding Color, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ColorToBrushConverter}}" />
+
+                                <!-- Previous color (set via code-behind since PreviousColor is nullable) -->
+                                <Border x:Name="PART_PreviousColorPreview"
+                                        Grid.Column="1"
+                                        CornerRadius="0,4,4,0"
+                                        BorderThickness="1"
+                                        BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                        Cursor="Hand"
+                                        Background="Transparent"
+                                        ToolTip="Click to revert to previous color" />
+                            </Grid>
+
+                            <!-- 5. Hex Input Row -->
+                            <Grid Visibility="{TemplateBinding IsHexInputVisible, Converter={StaticResource BoolToVisConverter}}"
+                                  Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="Hex"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"
+                                           Width="48" />
+                                <controls:TextBox x:Name="PART_HexTextBox"
+                                                  Grid.Column="1"
+                                                  PlaceholderText="#RRGGBB"
+                                                  FontSize="12"
+                                                  FontFamily="Consolas"
+                                                  MaxLength="9"
+                                                  VerticalAlignment="Center" />
+                                <Button x:Name="PART_CopyHexButton"
+                                        Grid.Column="2"
+                                        Margin="4,0,0,0"
+                                        Padding="4"
+                                        Width="28" Height="28"
+                                        ToolTip="Copy hex value"
+                                        VerticalAlignment="Center">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="Transparent"
+                                                    CornerRadius="4"
+                                                    Padding="2">
+                                                <controls:SymbolIcon x:Name="CopyIcon"
+                                                                     Symbol="Copy24"
+                                                                     FontSize="14"
+                                                                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="CopyIcon" Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </Grid>
+
+                            <!-- 6. Channel Toggle (RGB / HSV) -->
+                            <Grid x:Name="ChannelInputsSection"
+                                  Visibility="{TemplateBinding IsColorChannelTextInputVisible, Converter={StaticResource BoolToVisConverter}}"
+                                  Margin="0,0,0,8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Toggle button -->
+                                <ToggleButton x:Name="PART_ChannelToggle"
+                                              Grid.Row="0"
+                                              HorizontalAlignment="Left"
+                                              Margin="0,0,0,6"
+                                              Padding="8,2"
+                                              FontSize="11">
+                                    <ToggleButton.Style>
+                                        <Style TargetType="ToggleButton">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ToggleButton">
+                                                        <Border x:Name="ToggleBorder"
+                                                                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                                                BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="4"
+                                                                Padding="8,3">
+                                                            <TextBlock x:Name="ToggleText"
+                                                                       Text="RGB"
+                                                                       FontSize="11"
+                                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsChecked" Value="True">
+                                                                <Setter TargetName="ToggleText" Property="Text" Value="HSV" />
+                                                                <Setter TargetName="ToggleBorder" Property="Background" Value="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                                                                <Setter TargetName="ToggleText" Property="Foreground" Value="White" />
+                                                            </Trigger>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="ToggleBorder" Property="BorderBrush" Value="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ToggleButton.Style>
+                                </ToggleButton>
+
+                                <!-- RGB Inputs -->
+                                <Grid x:Name="RgbInputPanel"
+                                      Grid.Row="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="R" FontSize="10"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   Margin="0,0,0,2" />
+                                        <controls:NumberBox x:Name="PART_RedInput"
+                                                            Minimum="0" Maximum="255"
+                                                            MaxDecimalPlaces="0"
+                                                            SmallChange="1" LargeChange="10"
+                                                            SpinButtonPlacementMode="Hidden"
+                                                            FontSize="12" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="G" FontSize="10"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   Margin="0,0,0,2" />
+                                        <controls:NumberBox x:Name="PART_GreenInput"
+                                                            Minimum="0" Maximum="255"
+                                                            MaxDecimalPlaces="0"
+                                                            SmallChange="1" LargeChange="10"
+                                                            SpinButtonPlacementMode="Hidden"
+                                                            FontSize="12" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="4">
+                                        <TextBlock Text="B" FontSize="10"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   Margin="0,0,0,2" />
+                                        <controls:NumberBox x:Name="PART_BlueInput"
+                                                            Minimum="0" Maximum="255"
+                                                            MaxDecimalPlaces="0"
+                                                            SmallChange="1" LargeChange="10"
+                                                            SpinButtonPlacementMode="Hidden"
+                                                            FontSize="12" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- HSV Inputs -->
+                                <Grid x:Name="HsvInputPanel"
+                                      Grid.Row="1"
+                                      Visibility="Collapsed">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="H" FontSize="10"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   Margin="0,0,0,2" />
+                                        <controls:NumberBox x:Name="PART_HueInput"
+                                                            Minimum="0" Maximum="360"
+                                                            MaxDecimalPlaces="0"
+                                                            SmallChange="1" LargeChange="10"
+                                                            SpinButtonPlacementMode="Hidden"
+                                                            FontSize="12" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="S" FontSize="10"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   Margin="0,0,0,2" />
+                                        <controls:NumberBox x:Name="PART_SaturationInput"
+                                                            Minimum="0" Maximum="100"
+                                                            MaxDecimalPlaces="0"
+                                                            SmallChange="1" LargeChange="10"
+                                                            SpinButtonPlacementMode="Hidden"
+                                                            FontSize="12" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="4">
+                                        <TextBlock Text="V" FontSize="10"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   Margin="0,0,0,2" />
+                                        <controls:NumberBox x:Name="PART_ValueInput"
+                                                            Minimum="0" Maximum="100"
+                                                            MaxDecimalPlaces="0"
+                                                            SmallChange="1" LargeChange="10"
+                                                            SpinButtonPlacementMode="Hidden"
+                                                            FontSize="12" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Alpha Input (inline with channel inputs) -->
+                                <Grid x:Name="AlphaInputRow"
+                                      Grid.Row="2"
+                                      Visibility="Collapsed"
+                                      Margin="0,4,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="80" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="A"
+                                               FontSize="10"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               VerticalAlignment="Bottom"
+                                               Margin="0,0,0,8" />
+                                    <controls:NumberBox x:Name="PART_AlphaInput"
+                                                        Grid.Column="2"
+                                                        Minimum="0" Maximum="255"
+                                                        MaxDecimalPlaces="0"
+                                                        SmallChange="1" LargeChange="10"
+                                                        SpinButtonPlacementMode="Hidden"
+                                                        FontSize="12" />
+                                </Grid>
+                            </Grid>
+
+                            <!-- 7. Color Palette -->
+                            <StackPanel x:Name="PaletteSection"
+                                        Visibility="{TemplateBinding IsColorPaletteVisible, Converter={StaticResource BoolToVisConverter}}"
+                                        Margin="0,0,0,4">
+                                <TextBlock Text="Colors"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Margin="0,0,0,4" />
+                                <ItemsControl x:Name="PART_ColorPalette"
+                                              ItemsSource="{TemplateBinding PaletteColors}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource ColorPickerPaletteSwatchStyle}"
+                                                    Background="{Binding Converter={StaticResource ColorToBrushConverter}}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <!-- 8. Recent Colors -->
+                            <StackPanel x:Name="RecentColorsSection"
+                                        Visibility="Collapsed"
+                                        Margin="0,4,0,0">
+                                <TextBlock Text="Recent"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Margin="0,0,0,4" />
+                                <ItemsControl x:Name="PART_RecentColors"
+                                              ItemsSource="{Binding RecentColors, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource ColorPickerPaletteSwatchStyle}"
+                                                    Background="{Binding Converter={StaticResource ColorToBrushConverter}}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+                        <!-- Show alpha controls when alpha is enabled -->
+                        <Trigger Property="IsAlphaEnabled" Value="True">
+                            <Setter TargetName="AlphaSliderRow" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="AlphaInputRow" Property="Visibility" Value="Visible" />
+                        </Trigger>
+
+                        <!-- Toggle between RGB and HSV panels -->
+                        <Trigger Property="ColorChannelMode" Value="Hsv">
+                            <Setter TargetName="RgbInputPanel" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="HsvInputPanel" Property="Visibility" Value="Visible" />
+                        </Trigger>
+
+                        <!-- Show recent colors section when there are recent colors -->
+                        <DataTrigger Binding="{Binding RecentColors.Count, RelativeSource={RelativeSource Self}, FallbackValue=0}" Value="0">
+                            <Setter TargetName="RecentColorsSection" Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

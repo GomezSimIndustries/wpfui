@@ -25,7 +25,7 @@ internal static class DateTimeHelper
         {
             return Cal.AddDays(time, days);
         }
-        catch (System.ArgumentException)
+        catch (ArgumentException)
         {
             return null;
         }
@@ -37,7 +37,7 @@ internal static class DateTimeHelper
         {
             return Cal.AddMonths(time, months);
         }
-        catch (System.ArgumentException)
+        catch (ArgumentException)
         {
             return null;
         }
@@ -49,7 +49,7 @@ internal static class DateTimeHelper
         {
             return Cal.AddYears(time, years);
         }
-        catch (System.ArgumentException)
+        catch (ArgumentException)
         {
             return null;
         }
@@ -57,7 +57,7 @@ internal static class DateTimeHelper
 
     public static DateTime? SetYear(DateTime date, int year)
     {
-        return DateTimeHelper.AddYears(date, year - date.Year);
+        return AddYears(date, year - date.Year);
     }
 
     public static DateTime? SetYearMonth(DateTime date, DateTime yearMonth)
@@ -65,7 +65,7 @@ internal static class DateTimeHelper
         DateTime? target = SetYear(date, yearMonth.Year);
         if (target.HasValue)
         {
-            target = DateTimeHelper.AddMonths(target.Value, yearMonth.Month - date.Month);
+            target = AddMonths(target.Value, yearMonth.Month - date.Month);
         }
 
         return target;

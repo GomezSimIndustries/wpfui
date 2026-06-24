@@ -24,6 +24,10 @@ namespace Wpf.Ui.Controls;
     Name = TemplateElementFooterMenuItemsItemsControl,
     Type = typeof(System.Windows.Controls.ItemsControl)
 )]
+[TemplatePart(
+    Name = TemplateElementHeaderMenuItemsItemsControl,
+    Type = typeof(System.Windows.Controls.ItemsControl)
+)]
 [TemplatePart(Name = TemplateElementBackButton, Type = typeof(System.Windows.Controls.Button))]
 [TemplatePart(Name = TemplateElementToggleButton, Type = typeof(System.Windows.Controls.Button))]
 [TemplatePart(
@@ -47,6 +51,11 @@ public partial class NavigationView
     /// Template element represented by the <c>PART_FooterMenuItemsItemsControl</c> name.
     /// </summary>
     private const string TemplateElementFooterMenuItemsItemsControl = "PART_FooterMenuItemsItemsControl";
+
+    /// <summary>
+    /// Template element represented by the <c>PART_HeaderMenuItemsItemsControl</c> name.
+    /// </summary>
+    private const string TemplateElementHeaderMenuItemsItemsControl = "PART_HeaderMenuItemsItemsControl";
 
     /// <summary>
     /// Template element represented by the <c>PART_BackButton</c> name.
@@ -74,9 +83,14 @@ public partial class NavigationView
     protected System.Windows.Controls.ItemsControl MenuItemsItemsControl { get; set; } = null!;
 
     /// <summary>
-    /// Gets or sets the control located at the top of the pane with hamburger icon.
+    /// Gets or sets the control located at the bottom of the pane for footer items.
     /// </summary>
     protected System.Windows.Controls.ItemsControl FooterMenuItemsItemsControl { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the control located at the top of the pane for header menu items.
+    /// </summary>
+    protected System.Windows.Controls.ItemsControl? HeaderMenuItemsItemsControl { get; set; }
 
     /// <summary>
     /// Gets or sets the control located at the top of the pane with left arrow icon.
@@ -117,10 +131,29 @@ public partial class NavigationView
             FooterMenuItems
         );
 
+        // HeaderMenuItemsItemsControl is optional - not all templates include it
+        if (
+            GetTemplateChild(TemplateElementHeaderMenuItemsItemsControl)
+            is System.Windows.Controls.ItemsControl headerMenuItemsControl
+        )
+        {
+            HeaderMenuItemsItemsControl = headerMenuItemsControl;
+            HeaderMenuItemsItemsControl.SetCurrentValue(
+                System.Windows.Controls.ItemsControl.ItemsSourceProperty,
+                HeaderMenuItems
+            );
+        }
+
         if (NavigationViewContentPresenter is not null)
         {
             NavigationViewContentPresenter.Navigated -= OnNavigationViewContentPresenterNavigated;
             NavigationViewContentPresenter.Navigated += OnNavigationViewContentPresenterNavigated;
+
+            // Apply the ContentScrollViewerVisibility setting to the content presenter
+            NavigationViewContentPresenter.SetCurrentValue(
+                NavigationViewContentPresenter.ContentScrollViewerVisibilityProperty,
+                ContentScrollViewerVisibility
+            );
         }
 
         if (

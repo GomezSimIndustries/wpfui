@@ -87,6 +87,50 @@ public partial class NavigationView
         new FrameworkPropertyMetadata(null, OnFooterMenuItemsSourceChanged)
     );
 
+    private static readonly DependencyPropertyKey HeaderMenuItemsPropertyKey =
+        DependencyProperty.RegisterReadOnly(
+            nameof(HeaderMenuItems),
+            typeof(ObservableCollection<object>),
+            typeof(NavigationView),
+            new PropertyMetadata(null)
+        );
+
+    /// <summary>Identifies the <see cref="HeaderMenuItems"/> dependency property.</summary>
+    public static readonly DependencyProperty HeaderMenuItemsProperty =
+        HeaderMenuItemsPropertyKey.DependencyProperty;
+
+    /// <summary>Identifies the <see cref="HeaderMenuItemsSource"/> dependency property.</summary>
+    public static readonly DependencyProperty HeaderMenuItemsSourceProperty = DependencyProperty.Register(
+        nameof(HeaderMenuItemsSource),
+        typeof(object),
+        typeof(NavigationView),
+        new FrameworkPropertyMetadata(null, OnHeaderMenuItemsSourceChanged)
+    );
+
+    /// <summary>Identifies the <see cref="IsTopSeparatorVisible"/> dependency property.</summary>
+    public static readonly DependencyProperty IsTopSeparatorVisibleProperty = DependencyProperty.Register(
+        nameof(IsTopSeparatorVisible),
+        typeof(bool),
+        typeof(NavigationView),
+        new FrameworkPropertyMetadata(true)
+    );
+
+    /// <summary>Identifies the <see cref="IsFooterSeparatorVisible"/> dependency property.</summary>
+    public static readonly DependencyProperty IsFooterSeparatorVisibleProperty = DependencyProperty.Register(
+        nameof(IsFooterSeparatorVisible),
+        typeof(bool),
+        typeof(NavigationView),
+        new FrameworkPropertyMetadata(true)
+    );
+
+    /// <summary>Identifies the <see cref="IsHeaderSeparatorVisible"/> dependency property.</summary>
+    public static readonly DependencyProperty IsHeaderSeparatorVisibleProperty = DependencyProperty.Register(
+        nameof(IsHeaderSeparatorVisible),
+        typeof(bool),
+        typeof(NavigationView),
+        new FrameworkPropertyMetadata(true)
+    );
+
     /// <summary>Identifies the <see cref="ContentOverlay"/> dependency property.</summary>
     public static readonly DependencyProperty ContentOverlayProperty = DependencyProperty.Register(
         nameof(ContentOverlay),
@@ -243,6 +287,18 @@ public partial class NavigationView
         new FrameworkPropertyMetadata(default(Thickness))
     );
 
+    /// <summary>Identifies the <see cref="ContentScrollViewerVisibility"/> dependency property.</summary>
+    public static readonly DependencyProperty ContentScrollViewerVisibilityProperty =
+        DependencyProperty.Register(
+            nameof(ContentScrollViewerVisibility),
+            typeof(ContentScrollViewerVisibility),
+            typeof(NavigationView),
+            new FrameworkPropertyMetadata(
+                ContentScrollViewerVisibility.Auto,
+                OnContentScrollViewerVisibilityChanged
+            )
+        );
+
     /// <summary>
     /// Gets or sets a value indicating whether debugging messages for this control are enabled
     /// </summary>
@@ -316,6 +372,48 @@ public partial class NavigationView
     }
 
     /// <inheritdoc/>
+    public IList HeaderMenuItems => (ObservableCollection<object>)GetValue(HeaderMenuItemsProperty);
+
+    /// <inheritdoc/>
+    [Bindable(true)]
+    public object? HeaderMenuItemsSource
+    {
+        get => GetValue(HeaderMenuItemsSourceProperty);
+        set
+        {
+            if (value is null)
+            {
+                ClearValue(HeaderMenuItemsSourceProperty);
+            }
+            else
+            {
+                SetValue(HeaderMenuItemsSourceProperty, value);
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public bool IsTopSeparatorVisible
+    {
+        get => (bool)GetValue(IsTopSeparatorVisibleProperty);
+        set => SetValue(IsTopSeparatorVisibleProperty, value);
+    }
+
+    /// <inheritdoc/>
+    public bool IsFooterSeparatorVisible
+    {
+        get => (bool)GetValue(IsFooterSeparatorVisibleProperty);
+        set => SetValue(IsFooterSeparatorVisibleProperty, value);
+    }
+
+    /// <inheritdoc/>
+    public bool IsHeaderSeparatorVisible
+    {
+        get => (bool)GetValue(IsHeaderSeparatorVisibleProperty);
+        set => SetValue(IsHeaderSeparatorVisibleProperty, value);
+    }
+
+    /// <inheritdoc/>
     public object? ContentOverlay
     {
         get => GetValue(ContentOverlayProperty);
@@ -328,6 +426,9 @@ public partial class NavigationView
         get => (bool)GetValue(IsBackEnabledProperty);
         protected set => SetValue(IsBackEnabledProperty, value);
     }
+
+    /// <inheritdoc/>
+    public object? CurrentContent => NavigationViewContentPresenter?.Content;
 
     /// <inheritdoc/>
     public NavigationViewBackButtonVisible IsBackButtonVisible
@@ -450,6 +551,18 @@ public partial class NavigationView
         set => SetValue(FrameMarginProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets the visibility behavior of the internal ScrollViewer in the content area.
+    /// When set to <see cref="ContentScrollViewerVisibility.Auto"/> (default), the ScrollViewer visibility
+    /// is automatically determined based on each page's ScrollViewer.CanContentScroll property.
+    /// When set to <see cref="ContentScrollViewerVisibility.Hidden"/>, pages can provide their own scrolling.
+    /// </summary>
+    public ContentScrollViewerVisibility ContentScrollViewerVisibility
+    {
+        get => (ContentScrollViewerVisibility)GetValue(ContentScrollViewerVisibilityProperty);
+        set => SetValue(ContentScrollViewerVisibilityProperty, value);
+    }
+
     private void OnMenuItemsSource_CollectionChanged(
         object? sender,
         IList collection,
@@ -475,14 +588,11 @@ public partial class NavigationView
                 break;
 
             case NotifyCollectionChangedAction.Remove:
-                if (e.OldItems is not null && e.NewItems is not null)
+                if (e.OldItems is not null)
                 {
                     foreach (var item in e.OldItems)
                     {
-                        if (!e.NewItems.Contains(item))
-                        {
-                            collection.Remove(item);
-                        }
+                        collection.Remove(item);
                     }
                 }
 
@@ -511,13 +621,53 @@ public partial class NavigationView
 
     private void OnMenuItems_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.NewItems is null)
+        switch (e.Action)
         {
-            return;
-        }
+            case NotifyCollectionChangedAction.Add:
+                if (e.NewItems is not null)
+                {
+                    UpdateMenuItemsTemplate(e.NewItems);
+                    AddItemsToDictionaries(e.NewItems);
+                }
 
-        UpdateMenuItemsTemplate(e.NewItems);
-        AddItemsToDictionaries(e.NewItems);
+                break;
+
+            case NotifyCollectionChangedAction.Remove:
+                if (e.OldItems is not null)
+                {
+                    foreach (var item in e.OldItems.OfType<INavigationViewItem>())
+                    {
+                        OnNavigationViewItemRemoved(item);
+                    }
+                }
+
+                break;
+
+            case NotifyCollectionChangedAction.Replace:
+                if (e.OldItems is not null)
+                {
+                    foreach (var item in e.OldItems.OfType<INavigationViewItem>())
+                    {
+                        OnNavigationViewItemRemoved(item);
+                    }
+                }
+
+                if (e.NewItems is not null)
+                {
+                    UpdateMenuItemsTemplate(e.NewItems);
+                    AddItemsToDictionaries(e.NewItems);
+                }
+
+                break;
+
+            case NotifyCollectionChangedAction.Reset:
+                // All items removed - clear all navigation state
+                ClearJournal();
+                ClearCache();
+                PageIdOrTargetTagNavigationViewsDictionary.Clear();
+                PageTypeNavigationViewsDictionary.Clear();
+                break;
+        }
     }
 
     private static void OnMenuItemsSourceChanged(DependencyObject? d, DependencyPropertyChangedEventArgs e)
@@ -587,6 +737,48 @@ public partial class NavigationView
         {
             oc.CollectionChanged += (s, e) =>
                 navigationView.OnMenuItemsSource_CollectionChanged(oc, navigationView.FooterMenuItems, e);
+        }
+    }
+
+    private void OnHeaderMenuItems_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems is null)
+        {
+            return;
+        }
+
+        UpdateMenuItemsTemplate(e.NewItems);
+        AddItemsToDictionaries(e.NewItems);
+    }
+
+    private static void OnHeaderMenuItemsSourceChanged(
+        DependencyObject? d,
+        DependencyPropertyChangedEventArgs e
+    )
+    {
+        if (d is not NavigationView navigationView)
+        {
+            return;
+        }
+
+        navigationView.HeaderMenuItems.Clear();
+
+        if (e.NewValue is IEnumerable newItemsSource and not string)
+        {
+            foreach (var item in newItemsSource)
+            {
+                _ = navigationView.HeaderMenuItems.Add(item);
+            }
+        }
+        else if (e.NewValue != null)
+        {
+            _ = navigationView.HeaderMenuItems.Add(e.NewValue);
+        }
+
+        if (e.NewValue is INotifyCollectionChanged oc)
+        {
+            oc.CollectionChanged += (s, e) =>
+                navigationView.OnMenuItemsSource_CollectionChanged(oc, navigationView.HeaderMenuItems, e);
         }
     }
 
@@ -731,5 +923,24 @@ public partial class NavigationView
         breadcrumbBar.ItemTemplate ??=
             UiApplication.Current.TryFindResource("NavigationViewItemDataTemplate") as DataTemplate;
         breadcrumbBar.ItemClicked += navigationView.BreadcrumbBarOnItemClicked;
+    }
+
+    private static void OnContentScrollViewerVisibilityChanged(
+        DependencyObject d,
+        DependencyPropertyChangedEventArgs e
+    )
+    {
+        if (d is not NavigationView navigationView)
+        {
+            return;
+        }
+
+        if (navigationView.NavigationViewContentPresenter is not null)
+        {
+            navigationView.NavigationViewContentPresenter.SetCurrentValue(
+                NavigationViewContentPresenter.ContentScrollViewerVisibilityProperty,
+                (ContentScrollViewerVisibility)e.NewValue
+            );
+        }
     }
 }

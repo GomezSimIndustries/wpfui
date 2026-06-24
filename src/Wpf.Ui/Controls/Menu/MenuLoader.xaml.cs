@@ -20,7 +20,7 @@ public partial class MenuLoader : ResourceDictionary
     /// </remarks>
     public MenuLoader()
     {
-        MenuLoader.Initialize();
+        Initialize();
     }
 
     private static void Initialize()

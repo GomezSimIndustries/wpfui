@@ -16,6 +16,11 @@ namespace Wpf.Ui.Controls;
 
 public class NavigationViewContentPresenter : Frame
 {
+    /// <summary>
+    /// Stores the previous content during navigation to properly notify it about being navigated from.
+    /// </summary>
+    private object? _previousContent;
+
     /// <summary>Identifies the <see cref="TransitionDuration"/> dependency property.</summary>
     public static readonly DependencyProperty TransitionDurationProperty = DependencyProperty.Register(
         nameof(TransitionDuration),
@@ -39,6 +44,18 @@ public class NavigationViewContentPresenter : Frame
             typeof(bool),
             typeof(NavigationViewContentPresenter),
             new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsMeasure)
+        );
+
+    /// <summary>Identifies the <see cref="ContentScrollViewerVisibility"/> dependency property.</summary>
+    public static readonly DependencyProperty ContentScrollViewerVisibilityProperty =
+        DependencyProperty.Register(
+            nameof(ContentScrollViewerVisibility),
+            typeof(ContentScrollViewerVisibility),
+            typeof(NavigationViewContentPresenter),
+            new FrameworkPropertyMetadata(
+                ContentScrollViewerVisibility.Auto,
+                FrameworkPropertyMetadataOptions.AffectsMeasure
+            )
         );
 
     [Bindable(true)]
@@ -67,6 +84,24 @@ public class NavigationViewContentPresenter : Frame
         protected set => SetValue(IsDynamicScrollViewerEnabledProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets the visibility behavior of the internal ScrollViewer.
+    /// When set to <see cref="ContentScrollViewerVisibility.Auto"/>, the ScrollViewer visibility
+    /// is automatically determined based on the page's ScrollViewer.CanContentScroll property.
+    /// When set to <see cref="ContentScrollViewerVisibility.Hidden"/>, pages can provide their own scrolling.
+    /// </summary>
+    public ContentScrollViewerVisibility ContentScrollViewerVisibility
+    {
+        get => (ContentScrollViewerVisibility)GetValue(ContentScrollViewerVisibilityProperty);
+        set => SetValue(ContentScrollViewerVisibilityProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the pending navigation parameter to be passed to INavigationParameterAware pages.
+    /// This is set before navigation and consumed during the OnNavigated callback.
+    /// </summary>
+    internal object? PendingNavigationParameter { get; set; }
+
     static NavigationViewContentPresenter()
     {
         DefaultStyleKeyProperty.OverrideMetadata(
@@ -89,10 +124,16 @@ public class NavigationViewContentPresenter : Frame
             new FrameworkPropertyMetadata(JournalOwnership.UsesParentJournal)
         );
 
-        ScrollViewer.CanContentScrollProperty.OverrideMetadata(
-            typeof(Page),
-            new FrameworkPropertyMetadata(true)
-        );
+        if (
+            ScrollViewer.CanContentScrollProperty.GetMetadata(typeof(Page))
+            == ScrollViewer.CanContentScrollProperty.DefaultMetadata
+        )
+        {
+            ScrollViewer.CanContentScrollProperty.OverrideMetadata(
+                typeof(Page),
+                new FrameworkPropertyMetadata(true)
+            );
+        }
     }
 
     public NavigationViewContentPresenter()
@@ -125,12 +166,12 @@ public class NavigationViewContentPresenter : Frame
     {
         base.OnInitialized(e);
 
-        // REVIEW: I didn't understand something, but why is it necessary?
+        // Notify current content that it's being navigated away from when the presenter is unloaded
         Unloaded += static (sender, _) =>
         {
-            if (sender is NavigationViewContentPresenter navigator)
+            if (sender is NavigationViewContentPresenter { Content: not null } navigator)
             {
-                NotifyContentAboutNavigatingFrom(navigator.Content);
+                NotifyContentAboutNavigatedFrom(navigator.Content);
             }
         };
     }
@@ -159,18 +200,31 @@ public class NavigationViewContentPresenter : Frame
 
     protected virtual void OnNavigating(System.Windows.Navigation.NavigatingCancelEventArgs eventArgs)
     {
-        NotifyContentAboutNavigatingTo(eventArgs.Content);
-
-        if (eventArgs.Navigator is not NavigationViewContentPresenter navigator)
+        // Store the current content so we can notify it in OnNavigated (after visual transition)
+        if (eventArgs.Navigator is NavigationViewContentPresenter navigator)
         {
-            return;
+            _previousContent = navigator.Content;
         }
-
-        NotifyContentAboutNavigatingFrom(navigator.Content);
     }
 
     protected virtual void OnNavigated(NavigationEventArgs eventArgs)
     {
+        // First: Notify old content about being navigated from
+        // This happens AFTER the navigation is complete (page is no longer visible)
+        if (_previousContent is not null)
+        {
+            NotifyContentAboutNavigatedFrom(_previousContent);
+            _previousContent = null;
+        }
+
+        // Second: Notify new content about being navigated to
+        // This happens AFTER navigation is complete (page IS visible now)
+        if (eventArgs.Content is not null)
+        {
+            NotifyContentAboutNavigatedTo(eventArgs.Content);
+        }
+
+        // Third: Apply visual transition effect
         ApplyTransitionEffectToNavigatedPage(eventArgs.Content);
 
         if (eventArgs.Content is not DependencyObject dependencyObject)
@@ -178,10 +232,16 @@ public class NavigationViewContentPresenter : Frame
             return;
         }
 
-        SetCurrentValue(
-            IsDynamicScrollViewerEnabledProperty,
-            ScrollViewer.GetCanContentScroll(dependencyObject)
-        );
+        // Determine scroll viewer visibility based on ContentScrollViewerVisibility setting.
+        // Auto mode uses the page's CanContentScroll property.
+        var scrollViewerEnabled = ContentScrollViewerVisibility switch
+        {
+            ContentScrollViewerVisibility.Visible => true,
+            ContentScrollViewerVisibility.Hidden => false,
+            _ => ScrollViewer.GetCanContentScroll(dependencyObject),
+        };
+
+        SetCurrentValue(IsDynamicScrollViewerEnabledProperty, scrollViewerEnabled);
     }
 
     private void ApplyTransitionEffectToNavigatedPage(object content)
@@ -194,14 +254,17 @@ public class NavigationViewContentPresenter : Frame
         _ = TransitionAnimationProvider.ApplyTransition(content, Transition, TransitionDuration);
     }
 
-    private static void NotifyContentAboutNavigatingTo(object content)
+    private void NotifyContentAboutNavigatedTo(object content)
     {
-        NotifyContentAboutNavigating(content, navigationAware => navigationAware.OnNavigatedToAsync());
+        var parameter = PendingNavigationParameter;
+        PendingNavigationParameter = null; // Clear after use
+
+        NotifyINavigationAware(content, parameter, isNavigatingTo: true);
     }
 
-    private static void NotifyContentAboutNavigatingFrom(object content)
+    private static void NotifyContentAboutNavigatedFrom(object content)
     {
-        NotifyContentAboutNavigating(content, navigationAware => navigationAware.OnNavigatedFromAsync());
+        NotifyINavigationAware(content, parameter: null, isNavigatingTo: false);
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -209,34 +272,61 @@ public class NavigationViewContentPresenter : Frame
         "SuspiciousTypeConversion.Global",
         Justification = "The library user might make a class inherit from both FrameworkElement and INavigationAware at the same time."
     )]
-    private static void NotifyContentAboutNavigating(object content, Func<INavigationAware, Task> function)
+    private static void NotifyINavigationAware(object content, object? parameter, bool isNavigatingTo)
     {
-        async void PerformNotify(INavigationAware navigationAware)
+        // Fire-and-forget async call with exception handling
+        static async void PerformNotifyAsync(INavigationAware navigationAware, object? param, bool navigatingTo)
         {
-            await function(navigationAware).ConfigureAwait(false);
+            try
+            {
+                if (navigatingTo)
+                {
+                    // For INavigationParameterAware, call the parameterized overload
+                    // Note: No ConfigureAwait(false) - navigation callbacks need UI thread context
+                    if (navigationAware is INavigationParameterAware paramAware)
+                    {
+                        await paramAware.OnNavigatedToAsync(param);
+                    }
+                    else
+                    {
+                        await navigationAware.OnNavigatedToAsync();
+                    }
+                }
+                else
+                {
+                    await navigationAware.OnNavigatedFromAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log to debug output - in production, consider surfacing this via an event
+                System.Diagnostics.Debug.WriteLine(
+                    $"[NavigationViewContentPresenter] INavigationAware callback failed: {ex.Message}"
+                );
+            }
         }
 
         switch (content)
         {
             // The order in which the OnNavigatedToAsync/OnNavigatedFromAsync methods of View and ViewModel are called
-            // is not guaranteed
+            // is not guaranteed - both are notified if both implement INavigationAware
             case INavigationAware navigationAwareNavigationContent:
-                PerformNotify(navigationAwareNavigationContent);
+                PerformNotifyAsync(navigationAwareNavigationContent, parameter, isNavigatingTo);
                 if (
                     navigationAwareNavigationContent
                         is FrameworkElement { DataContext: INavigationAware viewModel }
                     && !ReferenceEquals(viewModel, navigationAwareNavigationContent)
                 )
                 {
-                    PerformNotify(viewModel);
+                    PerformNotifyAsync(viewModel, parameter, isNavigatingTo);
                 }
 
                 break;
             case INavigableView<object> { ViewModel: INavigationAware navigationAwareNavigableViewViewModel }:
-                PerformNotify(navigationAwareNavigableViewViewModel);
+                PerformNotifyAsync(navigationAwareNavigableViewViewModel, parameter, isNavigatingTo);
                 break;
             case FrameworkElement { DataContext: INavigationAware navigationAwareCurrentContent }:
-                PerformNotify(navigationAwareCurrentContent);
+                PerformNotifyAsync(navigationAwareCurrentContent, parameter, isNavigatingTo);
                 break;
         }
     }

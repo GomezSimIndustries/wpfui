@@ -11,7 +11,7 @@ namespace Wpf.Ui.Controls;
 /// <summary>
 /// Button that opens a URL in a web browser.
 /// </summary>
-public class HyperlinkButton : Wpf.Ui.Controls.Button
+public class HyperlinkButton : Button
 {
     /// <summary>Identifies the <see cref="NavigateUri"/> dependency property.</summary>
     public static readonly DependencyProperty NavigateUriProperty = DependencyProperty.Register(

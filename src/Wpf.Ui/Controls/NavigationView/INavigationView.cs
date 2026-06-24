@@ -55,9 +55,39 @@ public interface INavigationView
     object? FooterMenuItemsSource { get; set; }
 
     /// <summary>
+    /// Gets the list of objects to be used as navigation items in the header menu (above the main menu items).
+    /// </summary>
+    IList HeaderMenuItems { get; }
+
+    /// <summary>
+    /// Gets or sets the object that represents the navigation items to be used in the header menu.
+    /// </summary>
+    object? HeaderMenuItemsSource { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the top separators is visible.
+    /// </summary>
+    bool IsTopSeparatorVisible { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the footer separators is visible.
+    /// </summary>
+    bool IsFooterSeparatorVisible { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the header menu separator is visible.
+    /// </summary>
+    bool IsHeaderSeparatorVisible { get; set; }
+
+    /// <summary>
     /// Gets the selected item.
     /// </summary>
     INavigationViewItem? SelectedItem { get; }
+
+    /// <summary>
+    /// Gets the current content being displayed in the navigation view.
+    /// </summary>
+    object? CurrentContent { get; }
 
     /// <summary>
     /// Gets or sets a UI element that is shown at the top of the control, below the pane if PaneDisplayMode is Top.
@@ -239,6 +269,11 @@ public interface INavigationView
     /// Clears the NavigationView history.
     /// </summary>
     void ClearJournal();
+
+    /// <summary>
+    /// Clears all cached page instances.
+    /// </summary>
+    void ClearCache();
 
     /// <summary>
     /// Allows you to assign to the NavigationView a special service responsible for retrieving the page instances.

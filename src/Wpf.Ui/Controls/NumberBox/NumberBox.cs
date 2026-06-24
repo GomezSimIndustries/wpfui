@@ -23,7 +23,7 @@ namespace Wpf.Ui.Controls;
 [TemplatePart(Name = PART_ClearButton, Type = typeof(Button))]
 [TemplatePart(Name = PART_InlineIncrementButton, Type = typeof(RepeatButton))]
 [TemplatePart(Name = PART_InlineDecrementButton, Type = typeof(RepeatButton))]
-public partial class NumberBox : Wpf.Ui.Controls.TextBox
+public partial class NumberBox : TextBox
 {
     // Template part names
     private const string PART_ClearButton = nameof(PART_ClearButton);
@@ -236,7 +236,7 @@ public partial class NumberBox : Wpf.Ui.Controls.TextBox
     public NumberBox()
         : base()
     {
-        NumberFormatter ??= NumberBox.GetRegionalSettingsAwareDecimalFormatter();
+        NumberFormatter ??= GetRegionalSettingsAwareDecimalFormatter();
 
         DataObject.AddPastingHandler(this, OnClipboardPaste);
     }
@@ -301,20 +301,45 @@ public partial class NumberBox : Wpf.Ui.Controls.TextBox
     {
         base.OnLostFocus(e);
 
+        var oldValue = Value;
         ValidateInput();
+
+        // Update binding source if value changed
+        if (!Equals(oldValue, Value))
+        {
+            GetBindingExpression(ValueProperty)?.UpdateSource();
+        }
     }
 
-    /*/// <inheritdoc />
+    /// <inheritdoc />
     protected override void OnTextChanged(System.Windows.Controls.TextChangedEventArgs e)
     {
         base.OnTextChanged(e);
 
-        //if (new string[] { ",", ".", " " }.Any(s => Text.EndsWith(s)))
-        //    return;
+        // Don't validate while we're programmatically updating text from Value
+        if (_valueUpdating)
+        {
+            return;
+        }
 
-        //if (!_textUpdating)
-        //    UpdateValueToText();
-    }*/
+        // Skip validation if text ends with a decimal separator or minus sign
+        // (user is still typing a number like "1." or "-")
+        string text = Text.Trim();
+        if (string.IsNullOrEmpty(text) || text.EndsWith('.') || text.EndsWith(',')
+            || text == "-" || text == "+")
+        {
+            return;
+        }
+
+        // Try to parse — only update Value if the text is a valid complete number
+        var numberParser = NumberFormatter as INumberParser;
+        double? parsed = numberParser?.ParseDouble(text);
+        if (parsed is not null && !Equals(Value, parsed))
+        {
+            double clamped = Math.Clamp(parsed.Value, Minimum, Maximum);
+            SetCurrentValue(ValueProperty, clamped);
+        }
+    }
 
     /// <inheritdoc />
     public override void OnApplyTemplate()
@@ -468,8 +493,6 @@ public partial class NumberBox : Wpf.Ui.Controls.TextBox
         }
 
         SetCurrentValue(ValueProperty, value);
-
-        UpdateTextToValue();
     }
 
     private void MoveCaretToTextEnd()
@@ -515,7 +538,7 @@ public partial class NumberBox : Wpf.Ui.Controls.TextBox
         public static partial void InfoWriteLineForButtonClick(object sender)
         {
             var buttonName =
-                (sender is System.Windows.Controls.Primitives.ButtonBase element)
+                (sender is ButtonBase element)
                     ? element.Name
                     : throw new InvalidCastException(nameof(sender));
 

@@ -76,7 +76,6 @@
                     <Grid x:Name="Root">
                         <Border
                             x:Name="Border"
-                            MinWidth="180"
                             MinHeight="36"
                             Margin="0"
                             Padding="6"
@@ -93,11 +92,23 @@
                                 RecognizesAccessKey="True" />
                         </Border>
 
+                        <!-- Selection indicator (accent-colored underline) -->
+                        <Rectangle
+                            x:Name="SelectionIndicator"
+                            Width="16"
+                            Height="3"
+                            Margin="0,0,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Bottom"
+                            Fill="{DynamicResource NavigationViewSelectionIndicatorForeground}"
+                            Opacity="0.0"
+                            RadiusX="2"
+                            RadiusY="2" />
+
                         <VisualStateManager.VisualStateGroups>
                             <VisualStateGroup x:Name="SelectionStates">
                                 <VisualState x:Name="Unselected" />
                                 <VisualState x:Name="Selected" />
-
                             </VisualStateGroup>
                             <VisualStateGroup x:Name="CommonStates">
                                 <VisualState x:Name="Normal" />
@@ -121,6 +132,10 @@
                             <Setter TargetName="Border" Property="Background" Value="{DynamicResource TabViewItemHeaderBackgroundSelected}" />
                             <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource TabViewSelectedItemBorderBrush}" />
                             <Setter Property="Foreground" Value="{DynamicResource TabViewItemForegroundSelected}" />
+                            <Setter TargetName="SelectionIndicator" Property="Opacity" Value="1.0" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

@@ -17,4 +17,4 @@ namespace Wpf.Ui.Controls;
 ///     NavigateUri="https://lepo.co/" /&gt;
 /// </code>
 /// </example>
-public class Anchor : Wpf.Ui.Controls.HyperlinkButton { }
+public class Anchor : HyperlinkButton { }

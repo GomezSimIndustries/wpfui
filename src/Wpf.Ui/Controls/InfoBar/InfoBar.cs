@@ -65,6 +65,38 @@ public class InfoBar : System.Windows.Controls.ContentControl
         new PropertyMetadata(null)
     );
 
+    /// <summary>Identifies the <see cref="ActionButtonText"/> dependency property.</summary>
+    public static readonly DependencyProperty ActionButtonTextProperty = DependencyProperty.Register(
+        nameof(ActionButtonText),
+        typeof(string),
+        typeof(InfoBar),
+        new PropertyMetadata(null)
+    );
+
+    /// <summary>Identifies the <see cref="ActionButtonCommand"/> dependency property.</summary>
+    public static readonly DependencyProperty ActionButtonCommandProperty = DependencyProperty.Register(
+        nameof(ActionButtonCommand),
+        typeof(System.Windows.Input.ICommand),
+        typeof(InfoBar),
+        new PropertyMetadata(null)
+    );
+
+    /// <summary>Identifies the <see cref="ActionButtonCommandParameter"/> dependency property.</summary>
+    public static readonly DependencyProperty ActionButtonCommandParameterProperty = DependencyProperty.Register(
+        nameof(ActionButtonCommandParameter),
+        typeof(object),
+        typeof(InfoBar),
+        new PropertyMetadata(null)
+    );
+
+    /// <summary>Identifies the <see cref="ActionButtonStyle"/> dependency property.</summary>
+    public static readonly DependencyProperty ActionButtonStyleProperty = DependencyProperty.Register(
+        nameof(ActionButtonStyle),
+        typeof(Style),
+        typeof(InfoBar),
+        new PropertyMetadata(null)
+    );
+
     /// <summary>
     /// Gets or sets a value indicating whether the user can close the <see cref="InfoBar" />. Defaults to <c>true</c>.
     /// </summary>
@@ -117,6 +149,42 @@ public class InfoBar : System.Windows.Controls.ContentControl
     /// the close button.
     /// </summary>
     public IRelayCommand TemplateButtonCommand => (IRelayCommand)GetValue(TemplateButtonCommandProperty);
+
+    /// <summary>
+    /// Gets or sets the text for the action button. When set, an action button will be displayed.
+    /// </summary>
+    public string? ActionButtonText
+    {
+        get => (string?)GetValue(ActionButtonTextProperty);
+        set => SetValue(ActionButtonTextProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the command for the action button.
+    /// </summary>
+    public System.Windows.Input.ICommand? ActionButtonCommand
+    {
+        get => (System.Windows.Input.ICommand?)GetValue(ActionButtonCommandProperty);
+        set => SetValue(ActionButtonCommandProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the command parameter for the action button.
+    /// </summary>
+    public object? ActionButtonCommandParameter
+    {
+        get => GetValue(ActionButtonCommandParameterProperty);
+        set => SetValue(ActionButtonCommandParameterProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets a custom style for the action button. When null, severity-based styling is used.
+    /// </summary>
+    public Style? ActionButtonStyle
+    {
+        get => (Style?)GetValue(ActionButtonStyleProperty);
+        set => SetValue(ActionButtonStyleProperty, value);
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InfoBar"/> class.

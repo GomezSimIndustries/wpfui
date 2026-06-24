@@ -74,9 +74,12 @@ internal static class TrayManager
 
         notifyIcon.Id = TrayData.NotifyIcons.Count + 1;
 
+        // Use IntPtr.Zero as parent so the TrayHandler is a standalone top-level window.
+        // Previously this used parentSource.Handle, which made the TrayHandler a Win32 child
+        // of the main window — causing the tray icon to be destroyed when the window closed.
         notifyIcon.HookWindow = new TrayHandler(
             $"wpfui_th_{parentSource.Handle}_{notifyIcon.Id}",
-            parentSource.Handle
+            IntPtr.Zero
         )
         {
             ElementId = notifyIcon.Id,
@@ -148,6 +151,11 @@ internal static class TrayManager
         _ = Interop.Shell32.Shell_NotifyIcon(Interop.Shell32.NIM.DELETE, notifyIcon.ShellIconData);
 
         notifyIcon.IsRegistered = false;
+
+        // Dispose the HookWindow now that the tray icon is unregistered.
+        // Since the TrayHandler is a standalone top-level window (not parented),
+        // it must be explicitly disposed to avoid orphaned HwndSource objects.
+        notifyIcon.HookWindow?.Dispose();
 
         return true;
     }

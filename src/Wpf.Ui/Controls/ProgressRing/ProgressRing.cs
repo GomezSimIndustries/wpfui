@@ -64,9 +64,9 @@ public class ProgressRing : System.Windows.Controls.Control
     /// <summary>Identifies the <see cref="CoverRingVisibility"/> dependency property.</summary>
     public static readonly DependencyProperty CoverRingVisibilityProperty = DependencyProperty.Register(
         nameof(CoverRingVisibility),
-        typeof(System.Windows.Visibility),
+        typeof(Visibility),
         typeof(ProgressRing),
-        new PropertyMetadata(System.Windows.Visibility.Visible)
+        new PropertyMetadata(Visibility.Visible)
     );
 
     /// <summary>
@@ -103,7 +103,7 @@ public class ProgressRing : System.Windows.Controls.Control
     public double IndeterminateAngle
     {
         get => (double)GetValue(IndeterminateAngleProperty);
-        internal set => SetValue(IndeterminateAngleProperty, value);
+        set => SetValue(IndeterminateAngleProperty, value);
     }
 
     /// <summary>
@@ -112,16 +112,16 @@ public class ProgressRing : System.Windows.Controls.Control
     public Brush CoverRingStroke
     {
         get => (Brush)GetValue(CoverRingStrokeProperty);
-        internal set => SetValue(CoverRingStrokeProperty, value);
+        set => SetValue(CoverRingStrokeProperty, value);
     }
 
     /// <summary>
     /// Gets background ring visibility.
     /// </summary>
-    public System.Windows.Visibility CoverRingVisibility
+    public Visibility CoverRingVisibility
     {
-        get => (System.Windows.Visibility)GetValue(CoverRingVisibilityProperty);
-        internal set => SetValue(CoverRingVisibilityProperty, value);
+        get => (Visibility)GetValue(CoverRingVisibilityProperty);
+        set => SetValue(CoverRingVisibilityProperty, value);
     }
 
     /// <summary>

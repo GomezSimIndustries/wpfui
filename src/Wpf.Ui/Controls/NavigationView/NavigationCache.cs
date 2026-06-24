@@ -11,8 +11,20 @@ namespace Wpf.Ui.Controls;
 
 internal class NavigationCache
 {
-    private readonly Dictionary<Type, object?> _entires = [];
+    private readonly Dictionary<Type, object?> _entries = [];
 
+    /// <summary>
+    /// Gets the number of cached entries.
+    /// </summary>
+    public int Count => _entries.Count;
+
+    /// <summary>
+    /// Gets or creates a cached instance for the specified type.
+    /// </summary>
+    /// <param name="entryType">The type to cache.</param>
+    /// <param name="cacheMode">The cache mode determining whether to cache or always create new.</param>
+    /// <param name="generate">Factory function to create a new instance if not cached.</param>
+    /// <returns>The cached or newly created instance.</returns>
     public object? Remember(Type? entryType, NavigationCacheMode cacheMode, Func<object?> generate)
     {
         if (entryType == null)
@@ -29,7 +41,7 @@ internal class NavigationCache
             return generate.Invoke();
         }
 
-        if (!_entires.TryGetValue(entryType, out var value))
+        if (!_entries.TryGetValue(entryType, out var value))
         {
             System.Diagnostics.Debug.WriteLine(
                 $"{entryType} not found in cache, generating instance using action..."
@@ -37,11 +49,45 @@ internal class NavigationCache
 
             value = generate.Invoke();
 
-            _entires.Add(entryType, value);
+            _entries.Add(entryType, value);
         }
 
         System.Diagnostics.Debug.WriteLine($"{entryType} found in cache.");
 
         return value;
+    }
+
+    /// <summary>
+    /// Removes a specific type from the cache.
+    /// </summary>
+    /// <param name="entryType">The type to remove.</param>
+    /// <returns>True if the entry was removed; false if it wasn't in the cache.</returns>
+    public bool Remove(Type? entryType)
+    {
+        if (entryType == null)
+        {
+            return false;
+        }
+
+        return _entries.Remove(entryType);
+    }
+
+    /// <summary>
+    /// Clears all cached entries.
+    /// </summary>
+    public void Clear()
+    {
+        _entries.Clear();
+        System.Diagnostics.Debug.WriteLine("Navigation cache cleared.");
+    }
+
+    /// <summary>
+    /// Checks if a type is currently cached.
+    /// </summary>
+    /// <param name="entryType">The type to check.</param>
+    /// <returns>True if the type is cached; false otherwise.</returns>
+    public bool Contains(Type? entryType)
+    {
+        return entryType != null && _entries.ContainsKey(entryType);
     }
 }

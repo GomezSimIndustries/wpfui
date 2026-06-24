@@ -31,7 +31,7 @@ internal static class Hicon
                 return IntPtr.Zero;
             }
 
-            var appIconsExtractIcon = System.Drawing.Icon.ExtractAssociatedIcon(processName);
+            var appIconsExtractIcon = Icon.ExtractAssociatedIcon(processName);
 
             if (appIconsExtractIcon == null)
             {
@@ -44,7 +44,7 @@ internal static class Hicon
         }
         catch (Exception e)
         {
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 $"ERROR | Unable to get application hIcon - {e}",
                 "Wpf.Ui.Hicon"
             );
@@ -67,7 +67,7 @@ internal static class Hicon
 
         if (source is not BitmapSource bitmapSource)
         {
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 $"ERROR | Unable to allocate hIcon, ImageSource is not a BitmapSource",
                 "Wpf.Ui.Hicon"
             );
@@ -90,7 +90,7 @@ internal static class Hicon
 
         if (!gcHandle.IsAllocated)
         {
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 $"ERROR | Unable to allocate hIcon, allocation failed.",
                 "Wpf.Ui.Hicon"
             );

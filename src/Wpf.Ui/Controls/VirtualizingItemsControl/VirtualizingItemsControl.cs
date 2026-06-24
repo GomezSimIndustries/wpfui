@@ -17,7 +17,7 @@ namespace Wpf.Ui.Controls;
 /// Virtualized <see cref="ItemsControl"/>.
 /// <para>Based on <see href="https://github.com/sbaeumlisberger/VirtualizingWrapPanel"/>.</para>
 /// </summary>
-public class VirtualizingItemsControl : System.Windows.Controls.ItemsControl
+public class VirtualizingItemsControl : ItemsControl
 {
     /// <summary>Identifies the <see cref="CacheLengthUnit"/> dependency property.</summary>
     public static readonly DependencyProperty CacheLengthUnitProperty = DependencyProperty.Register(

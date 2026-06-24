@@ -1,0 +1,23 @@
+// This Source Code Form is subject to the terms of the MIT License.
+// If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
+// Copyright (C) Leszek Pomianowski and WPF UI Contributors.
+// All Rights Reserved.
+
+// ReSharper disable once CheckNamespace
+namespace Wpf.Ui.Controls;
+
+/// <summary>
+/// Defines the shape of the color spectrum control.
+/// </summary>
+public enum ColorSpectrumShape
+{
+    /// <summary>
+    /// A rectangular color spectrum.
+    /// </summary>
+    Box,
+
+    /// <summary>
+    /// A circular/ring-shaped color spectrum.
+    /// </summary>
+    Ring,
+}

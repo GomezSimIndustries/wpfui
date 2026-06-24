@@ -178,7 +178,10 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
 
         // Without setting the handler window at the front, menu may appear behind the taskbar
         _ = Interop.User32.SetForegroundWindow(HookWindow.Handle);
-        ContextMenuService.SetPlacement(ContextMenu, PlacementMode.MousePoint);
+
+        // Set placement properties for better positioning
+        ContextMenu.SetCurrentValue(ContextMenu.PlacementProperty, PlacementMode.MousePoint);
+        ContextMenu.SetCurrentValue(ContextMenu.PlacementTargetProperty, null);
 
         // ContextMenu.ApplyMica();
         ContextMenu.SetCurrentValue(ContextMenu.IsOpenProperty, true);
@@ -254,7 +257,7 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
             return;
         }
 
-        System.Diagnostics.Debug.WriteLine(
+        Debug.WriteLine(
             $"INFO | {typeof(NotifyIconService)} disposed.",
             "Wpf.Ui.NotifyIcon"
         );
@@ -270,7 +273,7 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
         switch (uMsg)
         {
             case Interop.User32.WM.DESTROY:
-                System.Diagnostics.Debug.WriteLine(
+                Debug.WriteLine(
                     $"INFO | {typeof(TrayHandler)} received {uMsg} message.",
                     "Wpf.Ui.NotifyIcon"
                 );
@@ -281,7 +284,7 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
                 return IntPtr.Zero;
 
             case Interop.User32.WM.NCDESTROY:
-                System.Diagnostics.Debug.WriteLine(
+                Debug.WriteLine(
                     $"INFO | {typeof(TrayHandler)} received {uMsg} message.",
                     "Wpf.Ui.NotifyIcon"
                 );
@@ -290,7 +293,7 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
                 return IntPtr.Zero;
 
             case Interop.User32.WM.CLOSE:
-                System.Diagnostics.Debug.WriteLine(
+                Debug.WriteLine(
                     $"INFO | {typeof(TrayHandler)} received {uMsg} message.",
                     "Wpf.Ui.NotifyIcon"
                 );

@@ -31,8 +31,8 @@ public class NumberBoxValueChangedEventArgs : RoutedEventArgs
     internal NumberBoxValueChangedEventArgs(double? oldValue, double? newValue, object source)
         : base(NumberBox.ValueChangedEvent, source)
     {
-        this.OldValue = oldValue;
-        this.NewValue = newValue;
+        OldValue = oldValue;
+        NewValue = newValue;
     }
 
     /// <summary>Gets the value of the <see cref="NumberBox.Value"/> property before the change.</summary>

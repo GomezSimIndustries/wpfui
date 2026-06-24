@@ -7,6 +7,7 @@
 
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Windows.Controls;
 using Wpf.Ui.Abstractions;
 
 // ReSharper disable once CheckNamespace
@@ -17,7 +18,25 @@ namespace Wpf.Ui.Controls;
 /// </content>
 public partial class NavigationView
 {
-    protected List<string> Journal { get; } = new(50);
+    /// <summary>
+    /// Maximum number of journal entries to keep. Older entries are automatically trimmed.
+    /// </summary>
+    private const int MaxJournalSize = 50;
+
+    protected List<string> Journal { get; } = new(MaxJournalSize);
+
+    /// <summary>
+    /// Stack of entries that can be navigated forward to after going back.
+    /// </summary>
+    private readonly Stack<string> _forwardStack = new();
+
+    /// <summary>
+    /// Per-NavigationViewItem instance cache. Preserves page instances while their
+    /// corresponding NavigationViewItem exists. Cleaned up when the item is removed.
+    /// This works alongside DI - first navigation creates via DI, subsequent navigations
+    /// return the cached instance.
+    /// </summary>
+    private readonly Dictionary<string, object?> _itemInstanceCache = [];
 
     protected ObservableCollection<INavigationViewItem> NavigationStack { get; } = [];
 
@@ -36,6 +55,11 @@ public partial class NavigationView
 
     /// <inheritdoc />
     public bool CanGoBack => Journal.Count > 1 && _currentIndexInJournal >= 0;
+
+    /// <summary>
+    /// Gets a value indicating whether there is at least one entry in forward navigation history.
+    /// </summary>
+    public bool CanGoForward => _forwardStack.Count > 0;
 
     /// <inheritdoc />
     public void SetPageProviderService(INavigationViewPageProvider navigationViewPageProvider) =>
@@ -128,21 +152,20 @@ public partial class NavigationView
     /// <inheritdoc />
     public virtual bool GoForward()
     {
-        throw new NotImplementedException();
-
-        /*if (Journal.Count <= 1)
+        if (_forwardStack.Count == 0)
         {
             return false;
         }
 
-        _currentIndexInJournal += 1;
+        var itemId = _forwardStack.Pop();
 
-        if (_currentIndexInJournal > Journal.Count - 1)
+        if (!PageIdOrTargetTagNavigationViewsDictionary.TryGetValue(itemId, out var navigationViewItem))
         {
             return false;
         }
 
-        return Navigate(Journal[_currentIndexInJournal]);*/
+        // Navigate without clearing forward stack (isForwardNavigated flag)
+        return NavigateInternal(navigationViewItem, null, false, false, isForwardNavigated: true);
     }
 
     /// <inheritdoc />
@@ -152,6 +175,10 @@ public partial class NavigationView
         {
             return false;
         }
+
+        // Push current page to forward stack so we can navigate back to it
+        var currentId = Journal[^1];
+        _forwardStack.Push(currentId);
 
         var itemId = Journal[^2];
 
@@ -165,7 +192,82 @@ public partial class NavigationView
         _currentIndexInJournal = 0;
 
         Journal.Clear();
+        _forwardStack.Clear();
+        _itemInstanceCache.Clear();
         _complexNavigationStackHistory.Clear();
+    }
+
+    /// <inheritdoc />
+    public virtual void ClearCache()
+    {
+        _cache.Clear();
+        _itemInstanceCache.Clear();
+    }
+
+    /// <summary>
+    /// Cleans up all navigation state associated with a NavigationViewItem.
+    /// Call this when a NavigationViewItem is removed (e.g., device disconnected).
+    /// </summary>
+    /// <param name="item">The NavigationViewItem being removed.</param>
+    internal void OnNavigationViewItemRemoved(INavigationViewItem item)
+    {
+        var itemId = item.Id;
+
+        // Remove from per-item instance cache
+        if (_itemInstanceCache.Remove(itemId))
+        {
+            Debug.WriteLine($"Removed cached instance for {itemId}");
+        }
+
+        // Remove all journal entries for this item
+        _ = Journal.RemoveAll(id => id == itemId);
+
+        // Remove from forward stack (need to rebuild without the removed item)
+        if (_forwardStack.Count > 0)
+        {
+            var remaining = _forwardStack.Where(id => id != itemId).Reverse().ToList();
+            _forwardStack.Clear();
+            foreach (var id in remaining)
+            {
+                _forwardStack.Push(id);
+            }
+        }
+
+        // Remove from navigation stack if present
+        var stackItem = NavigationStack.FirstOrDefault(i => i.Id == itemId);
+        if (stackItem is not null)
+        {
+            _ = NavigationStack.Remove(stackItem);
+        }
+
+        // Remove from complex navigation history
+        _ = _complexNavigationStackHistory.Remove(item);
+
+        // Remove from dictionaries
+        _ = PageIdOrTargetTagNavigationViewsDictionary.Remove(itemId);
+
+        if (!string.IsNullOrEmpty(item.TargetPageTag))
+        {
+            _ = PageIdOrTargetTagNavigationViewsDictionary.Remove(item.TargetPageTag);
+        }
+
+        if (item.TargetPageType is not null)
+        {
+            // Only remove from type dictionary if no other items use this type
+            var otherItemsWithSameType = PageTypeNavigationViewsDictionary
+                .Any(kvp => kvp.Value.Id != itemId && kvp.Key == item.TargetPageType);
+
+            if (!otherItemsWithSameType)
+            {
+                _ = PageTypeNavigationViewsDictionary.Remove(item.TargetPageType);
+            }
+        }
+
+        // Recalculate journal index
+        _currentIndexInJournal = Math.Max(0, Journal.Count - 1);
+        SetCurrentValue(IsBackEnabledProperty, CanGoBack);
+
+        Debug.WriteLine($"Cleaned up navigation state for {itemId}");
     }
 
     private bool TryToNavigateWithoutINavigationViewItem(
@@ -175,6 +277,13 @@ public partial class NavigationView
     )
     {
         var navigationViewItem = new NavigationViewItem(pageType);
+
+        // Try to get a title from the page instance for the breadcrumb
+        var pageInstance = GetNavigationItemInstance(navigationViewItem);
+        if (pageInstance is Page page && !string.IsNullOrEmpty(page.Title))
+        {
+            navigationViewItem.Content = page.Title;
+        }
 
         if (!NavigateInternal(navigationViewItem, dataContext, addToNavigationStack))
         {
@@ -191,7 +300,8 @@ public partial class NavigationView
         INavigationViewItem viewItem,
         object? dataContext = null,
         bool addToNavigationStack = false,
-        bool isBackwardsNavigated = false
+        bool isBackwardsNavigated = false,
+        bool isForwardNavigated = false
     )
     {
         if (NavigationStack.Count > 0 && NavigationStack[^1] == viewItem)
@@ -199,27 +309,41 @@ public partial class NavigationView
             return false;
         }
 
+        // Use NavigationViewItem's TargetDataContext as fallback if no dataContext provided
+        dataContext ??= viewItem.TargetDataContext;
+
         var pageInstance = GetNavigationItemInstance(viewItem);
 
         if (OnNavigating(pageInstance))
         {
-            System.Diagnostics.Debug.WriteLineIf(EnableDebugMessages, "Navigation canceled");
+            Debug.WriteLineIf(EnableDebugMessages, "Navigation canceled");
 
             return false;
         }
 
-        System.Diagnostics.Debug.WriteLineIf(
+        Debug.WriteLineIf(
             EnableDebugMessages,
             $"DEBUG | {viewItem.Id} - {(string.IsNullOrEmpty(viewItem.TargetPageTag) ? "NO_TAG" : viewItem.TargetPageTag)} - {viewItem.TargetPageType} | NAVIGATED"
         );
 
-        OnNavigated(pageInstance);
+        // Note: OnNavigated() is called in OnNavigationViewContentPresenterNavigated after Frame.Navigate() completes.
+        // This ensures NavigationView.Navigated event fires AFTER the page is actually visible.
 
-        ApplyAttachedProperties(viewItem, pageInstance);
+        // Set up the association before setting DataContext
+        if (pageInstance is FrameworkElement frameworkElement)
+        {
+            // Set NavigationParent to allow HeaderContent property changes to find this NavigationView
+            frameworkElement.SetValue(NavigationParentProperty, this);
+        }
+
+        // Set DataContext first so bindings can resolve
         UpdateContent(pageInstance, dataContext);
 
+        // Apply properties after DataContext is set
+        ApplyAttachedProperties(viewItem, pageInstance);
+
         AddToNavigationStack(viewItem, addToNavigationStack, isBackwardsNavigated);
-        AddToJournal(viewItem, isBackwardsNavigated);
+        AddToJournal(viewItem, isBackwardsNavigated, isForwardNavigated);
 
         if (SelectedItem != NavigationStack[0] && NavigationStack[0].IsMenuElement)
         {
@@ -230,7 +354,7 @@ public partial class NavigationView
         return true;
     }
 
-    private void AddToJournal(INavigationViewItem viewItem, bool isBackwardsNavigated)
+    private void AddToJournal(INavigationViewItem viewItem, bool isBackwardsNavigated, bool isForwardNavigated = false)
     {
         if (isBackwardsNavigated)
         {
@@ -240,8 +364,21 @@ public partial class NavigationView
             _currentIndexInJournal -= 2;
         }
 
+        // Clear forward stack when navigating to a new page (not back/forward)
+        if (!isBackwardsNavigated && !isForwardNavigated)
+        {
+            _forwardStack.Clear();
+        }
+
         Journal.Add(viewItem.Id);
         _currentIndexInJournal++;
+
+        // Trim old journal entries if we exceed the maximum size
+        while (Journal.Count > MaxJournalSize)
+        {
+            Journal.RemoveAt(0);
+            _currentIndexInJournal--;
+        }
 
         SetCurrentValue(IsBackEnabledProperty, CanGoBack);
 
@@ -262,30 +399,56 @@ public partial class NavigationView
             );
         }
 
+        // Check per-item cache first (preserves instance while NavigationViewItem exists)
+        if (viewItem.NavigationCacheMode != NavigationCacheMode.Disabled
+            && _itemInstanceCache.TryGetValue(viewItem.Id, out var cachedInstance)
+            && cachedInstance is not null)
+        {
+            Debug.WriteLine(
+                $"Returning cached instance for {viewItem.Id} ({viewItem.TargetPageType.Name})"
+            );
+            return cachedInstance;
+        }
+
+        // Create new instance via DI, page service, or reflection
+        object instance;
+
         if (_serviceProvider is not null)
         {
-            return _serviceProvider.GetService(viewItem.TargetPageType)
+            instance = _serviceProvider.GetService(viewItem.TargetPageType)
                 ?? throw new InvalidOperationException(
                     $"{nameof(_serviceProvider)}.{nameof(_serviceProvider.GetService)} returned null for type {viewItem.TargetPageType}."
                 );
         }
-
-        if (_pageService is not null)
+        else if (_pageService is not null)
         {
-            return _pageService.GetPage(viewItem.TargetPageType)
+            instance = _pageService.GetPage(viewItem.TargetPageType)
                 ?? throw new InvalidOperationException(
                     $"{nameof(_pageService)}.{nameof(_pageService.GetPage)} returned null for type {viewItem.TargetPageType}."
                 );
         }
+        else
+        {
+            instance = _cache.Remember(
+                    viewItem.TargetPageType,
+                    viewItem.NavigationCacheMode,
+                    ComputeCachedNavigationInstance
+                )
+                ?? throw new InvalidOperationException(
+                    $"Unable to get or create instance of {viewItem.TargetPageType} from cache."
+                );
+        }
 
-        return _cache.Remember(
-                viewItem.TargetPageType,
-                viewItem.NavigationCacheMode,
-                ComputeCachedNavigationInstance
-            )
-            ?? throw new InvalidOperationException(
-                $"Unable to get or create instance of {viewItem.TargetPageType} from cache."
+        // Store in per-item cache for reuse while the NavigationViewItem exists
+        if (viewItem.NavigationCacheMode != NavigationCacheMode.Disabled)
+        {
+            _itemInstanceCache[viewItem.Id] = instance;
+            Debug.WriteLine(
+                $"Cached instance for {viewItem.Id} ({viewItem.TargetPageType.Name})"
             );
+        }
+
+        return instance;
 
         object? ComputeCachedNavigationInstance() => GetPageInstanceFromCache(viewItem.TargetPageType);
     }
@@ -299,7 +462,7 @@ public partial class NavigationView
 
         if (_serviceProvider is not null)
         {
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 $"Getting {targetPageType} from cache using IServiceProvider."
             );
 
@@ -311,7 +474,7 @@ public partial class NavigationView
 
         if (_pageService is not null)
         {
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 $"Getting {targetPageType} from cache using INavigationViewPageProvider."
             );
 
@@ -319,31 +482,61 @@ public partial class NavigationView
                 ?? throw new InvalidOperationException($"{nameof(_pageService.GetPage)} returned null");
         }
 
-        System.Diagnostics.Debug.WriteLine($"Getting {targetPageType} from cache using reflection.");
+        Debug.WriteLine($"Getting {targetPageType} from cache using reflection.");
 
         return NavigationViewActivator.CreateInstance(targetPageType)
             ?? throw new InvalidOperationException("Failed to create instance of the page");
     }
 
-    private static void ApplyAttachedProperties(INavigationViewItem viewItem, object pageInstance)
+    private void ApplyAttachedProperties(INavigationViewItem viewItem, object pageInstance)
     {
-        if (
-            pageInstance is FrameworkElement frameworkElement
-            && GetHeaderContent(frameworkElement) is { } headerContent
-        )
+        if (pageInstance is FrameworkElement frameworkElement)
         {
-            viewItem.Content = headerContent;
+            // Store the association between page and navigation item
+            PageToNavigationItemDictionary[frameworkElement] = viewItem;
+
+            // Apply HeaderContent if already available
+            if (GetHeaderContent(frameworkElement) is { } headerContent)
+            {
+                viewItem.Content = headerContent;
+                UpdateBreadcrumbContents();
+            }
+        }
+    }
+
+    internal void NotifyHeaderContentChanged(FrameworkElement page, object? headerContent)
+    {
+        if (PageToNavigationItemDictionary.TryGetValue(page, out INavigationViewItem? navItem))
+        {
+            navItem.Content = headerContent;
+            UpdateBreadcrumbContents();
         }
     }
 
     private void UpdateContent(object? content, object? dataContext = null)
     {
-        if (dataContext is not null && content is FrameworkElement frameworkViewContent)
+        if (content is FrameworkElement frameworkViewContent)
         {
-            frameworkViewContent.DataContext = dataContext;
+            // For INavigableView pages, set DataContext to the page itself
+            // so bindings like {Binding ViewModel...} work immediately.
+            // The navigation parameter is passed via INavigationParameterAware.OnNavigatedToAsync(parameter).
+            if (content is Wpf.Ui.Abstractions.Controls.INavigableView<object>)
+            {
+                frameworkViewContent.DataContext = frameworkViewContent;
+            }
+            else if (dataContext is not null)
+            {
+                frameworkViewContent.DataContext = dataContext;
+            }
         }
 
-        _ = NavigationViewContentPresenter.Navigate(content);
+        // Store the navigation parameter for INavigationParameterAware notification
+        if (NavigationViewContentPresenter is not null)
+        {
+            NavigationViewContentPresenter.PendingNavigationParameter = dataContext;
+        }
+
+        _ = NavigationViewContentPresenter?.Navigate(content);
     }
 
     private void OnNavigationViewContentPresenterNavigated(
@@ -351,15 +544,18 @@ public partial class NavigationView
         System.Windows.Navigation.NavigationEventArgs e
     )
     {
-        if (sender is not System.Windows.Controls.Frame frame)
+        if (sender is not Frame frame)
         {
             return;
         }
 
         _ = frame.RemoveBackEntry();
 
-        /*var replaced = 1;
-        ((NavigationViewContentPresenter)sender).JournalOwnership =*/
+        // Raise NavigationView.Navigated event AFTER navigation is complete (page IS visible now)
+        if (e.Content is not null)
+        {
+            OnNavigated(e.Content);
+        }
     }
 
     private void AddToNavigationStack(

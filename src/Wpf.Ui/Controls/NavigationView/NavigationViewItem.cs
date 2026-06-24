@@ -241,6 +241,11 @@ public class NavigationViewItem
 
     protected Grid? ChevronGrid { get; set; }
 
+    // Event handler references for proper cleanup (prevents memory leaks)
+    private INavigationView? _subscribedNavigationView;
+    private TypedEventHandler<NavigationView, RoutedEventArgs>? _paneOpenedHandler;
+    private TypedEventHandler<NavigationView, RoutedEventArgs>? _paneClosedHandler;
+
     static NavigationViewItem()
     {
         DefaultStyleKeyProperty.OverrideMetadata(
@@ -253,11 +258,7 @@ public class NavigationViewItem
     {
         Id = Guid.NewGuid().ToString("n");
 
-        Unloaded += static (sender, _) =>
-        {
-            ((NavigationViewItem)sender).NavigationViewItemParent = null;
-        };
-
+        Unloaded += OnNavigationViewItemUnloaded;
         Loaded += (_, _) => InitializeNavigationViewEvents();
 
         // Initialize the `Items` collection
@@ -265,7 +266,49 @@ public class NavigationViewItem
         menuItems.CollectionChanged += OnMenuItems_CollectionChanged;
         SetValue(MenuItemsPropertyKey, menuItems);
     }
-    
+
+    private void OnNavigationViewItemUnloaded(object sender, RoutedEventArgs e)
+    {
+        NavigationViewItemParent = null;
+        UnsubscribeFromNavigationViewEvents();
+        UnsubscribeFromMenuItemsSource();
+
+        // Unsubscribe from internal MenuItems collection
+        if (GetValue(MenuItemsProperty) is ObservableCollection<object> menuItems)
+        {
+            menuItems.CollectionChanged -= OnMenuItems_CollectionChanged;
+        }
+    }
+
+    private void UnsubscribeFromMenuItemsSource()
+    {
+        // Unsubscribe from external MenuItemsSource if it implements INotifyCollectionChanged
+        if (MenuItemsSource is INotifyCollectionChanged notifyCollection)
+        {
+            notifyCollection.CollectionChanged -= OnMenuItemsCollectionChanged;
+        }
+    }
+
+    private void UnsubscribeFromNavigationViewEvents()
+    {
+        if (_subscribedNavigationView is NavigationView navigationView)
+        {
+            if (_paneOpenedHandler is not null)
+            {
+                navigationView.PaneOpened -= _paneOpenedHandler;
+                _paneOpenedHandler = null;
+            }
+
+            if (_paneClosedHandler is not null)
+            {
+                navigationView.PaneClosed -= _paneClosedHandler;
+                _paneClosedHandler = null;
+            }
+        }
+
+        _subscribedNavigationView = null;
+    }
+
     public NavigationViewItem(
         string? content = null,
         SymbolRegular? icon = null,
@@ -276,12 +319,12 @@ public class NavigationViewItem
     {
         if (content != null)
         {
-            this.SetValue(ContentProperty, content);
+            SetValue(ContentProperty, content);
         }
 
         if (icon.HasValue)
         {
-            this.SetValue(IconProperty, new SymbolIcon
+            SetValue(IconProperty, new SymbolIcon
             {
                 Symbol = icon.Value,
             });
@@ -289,12 +332,12 @@ public class NavigationViewItem
 
         if (targetPageType != null)
         {
-            this.SetValue(TargetPageTypeProperty, targetPageType);
+            SetValue(TargetPageTypeProperty, targetPageType);
         }
 
         if (targetDataContext != null)
         {
-            this.SetValue(TargetDataContextProperty, targetDataContext);
+            SetValue(TargetDataContextProperty, targetDataContext);
         }
 
         if (menuItemsSource == null)
@@ -302,7 +345,7 @@ public class NavigationViewItem
             return;
         }
 
-        this.SetValue(MenuItemsSourceProperty, menuItemsSource);
+        SetValue(MenuItemsSourceProperty, menuItemsSource);
     }
 
     public NavigationViewItem(Type targetPageType)
@@ -544,50 +587,75 @@ public class NavigationViewItem
         }
     }
 
-    private void OnMenuItemsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+    private void OnMenuItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
-                foreach (var newItem in e.NewItems)
+                if (e.NewItems is not null)
                 {
-                    MenuItems.Add(newItem);
+                    foreach (var newItem in e.NewItems)
+                    {
+                        MenuItems.Add(newItem);
+                    }
                 }
-                
+
                 break;
             case NotifyCollectionChangedAction.Remove:
-                foreach (var oldItem in e.OldItems)
+                if (e.OldItems is not null)
                 {
-                    MenuItems.Remove(oldItem);
+                    foreach (var oldItem in e.OldItems)
+                    {
+                        MenuItems.Remove(oldItem);
+                    }
                 }
-                
+
                 break;
             case NotifyCollectionChangedAction.Reset:
                 MenuItems.Clear();
                 break;
             case NotifyCollectionChangedAction.Replace:
-                foreach (var oldItem in e.OldItems)
+                if (e.OldItems is not null)
                 {
-                    MenuItems.Remove(oldItem);
+                    foreach (var oldItem in e.OldItems)
+                    {
+                        MenuItems.Remove(oldItem);
+                    }
                 }
-                
-                foreach (var newItem in e.NewItems)
+
+                if (e.NewItems is not null)
                 {
-                    MenuItems.Add(newItem);
+                    foreach (var newItem in e.NewItems)
+                    {
+                        MenuItems.Add(newItem);
+                    }
                 }
-                
+
                 break;
         }
     }
 
     private void InitializeNavigationViewEvents()
     {
-        if (NavigationView.GetNavigationParent(this) is { } navigationView)
+        if (NavigationView.GetNavigationParent(this) is not { } navigationView)
         {
-            SetCurrentValue(IsPaneOpenProperty, navigationView.IsPaneOpen);
-
-            navigationView.PaneOpened += (_, _) => SetCurrentValue(IsPaneOpenProperty, true);
-            navigationView.PaneClosed += (_, _) => SetCurrentValue(IsPaneOpenProperty, false);
+            return;
         }
+
+        // Unsubscribe from previous navigation view if re-parented
+        if (_subscribedNavigationView is not null && !ReferenceEquals(_subscribedNavigationView, navigationView))
+        {
+            UnsubscribeFromNavigationViewEvents();
+        }
+
+        SetCurrentValue(IsPaneOpenProperty, navigationView.IsPaneOpen);
+
+        // Store handlers so they can be unsubscribed later (prevents memory leaks)
+        _subscribedNavigationView = navigationView;
+        _paneOpenedHandler = (_, _) => SetCurrentValue(IsPaneOpenProperty, true);
+        _paneClosedHandler = (_, _) => SetCurrentValue(IsPaneOpenProperty, false);
+
+        navigationView.PaneOpened += _paneOpenedHandler;
+        navigationView.PaneClosed += _paneClosedHandler;
     }
 }

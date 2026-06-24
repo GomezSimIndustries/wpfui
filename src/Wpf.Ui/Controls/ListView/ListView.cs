@@ -73,7 +73,7 @@ public class ListView : System.Windows.Controls.ListView
 
         // Setup initial ViewState and hook into View property changes
         _descriptor = DependencyPropertyDescriptor.FromProperty(
-            System.Windows.Controls.ListView.ViewProperty,
+            ViewProperty,
             typeof(System.Windows.Controls.ListView)
         );
         _descriptor?.AddValueChanged(this, OnViewPropertyChanged);

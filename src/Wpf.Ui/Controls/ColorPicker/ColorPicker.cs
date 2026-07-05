@@ -4,9 +4,12 @@
 // All Rights Reserved.
 
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 // ReSharper disable once CheckNamespace
 namespace Wpf.Ui.Controls;
@@ -68,6 +71,8 @@ public class ColorPicker : Control
     private NumberBox? _alphaInput;
     private ToggleButton? _channelToggle;
     private Button? _copyHexButton;
+    private DispatcherTimer? _copyFeedbackTimer;
+    private object? _copyHexButtonOriginalToolTip;
 
     // HSV state (source of truth for internal calculations)
     private double _hue;
@@ -614,17 +619,82 @@ public class ColorPicker : Control
 
     private void OnCopyHexClick(object sender, RoutedEventArgs e)
     {
-        if (_hexTextBox != null)
+        if (_hexTextBox is null)
+        {
+            return;
+        }
+
+        if (TryCopyToClipboard(_hexTextBox.Text))
+        {
+            ShowCopyConfirmation();
+        }
+    }
+
+    /// <summary>
+    /// Writes <paramref name="text"/> to the clipboard, retrying briefly if another process is
+    /// transiently holding it open (a common, well-documented OLE clipboard condition).
+    /// </summary>
+    /// <param name="text">The text to copy.</param>
+    /// <param name="writer">The clipboard-write delegate; defaults to the system clipboard when <see langword="null"/>.</param>
+    /// <param name="maxAttempts">The maximum number of attempts before giving up.</param>
+    /// <returns><see langword="true"/> if the write succeeded within <paramref name="maxAttempts"/>; otherwise <see langword="false"/>.</returns>
+    public static bool TryCopyToClipboard(string text, Action<string>? writer = null, int maxAttempts = 5)
+    {
+        writer ??= static t => Clipboard.SetDataObject(t, true);
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
             try
             {
-                Clipboard.SetText(_hexTextBox.Text);
+                writer(text);
+                return true;
             }
-            catch
+            catch (COMException) when (attempt < maxAttempts)
             {
-                // Clipboard may fail if locked by another process
+                Thread.Sleep(50);
+            }
+            catch (COMException)
+            {
+                return false;
             }
         }
+
+        return false;
+    }
+
+    private void ShowCopyConfirmation()
+    {
+        if (_copyHexButton is null)
+        {
+            return;
+        }
+
+        _copyFeedbackTimer?.Stop();
+
+        _copyHexButtonOriginalToolTip ??= _copyHexButton.ToolTip;
+        _copyHexButton.ToolTip = new ToolTip { Content = "Copied!", PlacementTarget = _copyHexButton, IsOpen = true, };
+
+        _copyFeedbackTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.2), };
+        _copyFeedbackTimer.Tick -= OnCopyFeedbackElapsed;
+        _copyFeedbackTimer.Tick += OnCopyFeedbackElapsed;
+        _copyFeedbackTimer.Start();
+    }
+
+    private void OnCopyFeedbackElapsed(object? sender, EventArgs e)
+    {
+        _copyFeedbackTimer?.Stop();
+
+        if (_copyHexButton is null)
+        {
+            return;
+        }
+
+        if (_copyHexButton.ToolTip is ToolTip openToolTip)
+        {
+            openToolTip.IsOpen = false;
+        }
+
+        _copyHexButton.ToolTip = _copyHexButtonOriginalToolTip;
     }
 
     private void OnPreviousColorClick(object sender, MouseButtonEventArgs e)

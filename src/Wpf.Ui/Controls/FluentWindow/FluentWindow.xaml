@@ -24,7 +24,8 @@
         <Setter Property="MinWidth" Value="460" />
         <Setter Property="Margin" Value="0" />
         <Setter Property="Padding" Value="0" />
-        <Setter Property="FontFamily" Value="Century Gothic" />
+        <!--  Brand face with fallbacks.  -->
+        <Setter Property="FontFamily" Value="pack://application:,,,/GSISimOS;component/Assets/Fonts/#Jost, Questrial, Jost, Poppins, Segoe UI" />
         <Setter Property="FontSize" Value="{DynamicResource ControlContentThemeFontSize}" />
         <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="UseLayoutRounding" Value="True" />

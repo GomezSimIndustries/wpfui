@@ -69,22 +69,33 @@ public class ListView : System.Windows.Controls.ListView
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        Loaded -= OnLoaded; // prevent memory leaks
+        AttachViewDescriptor();
+        UpdateViewState();
+    }
 
-        // Setup initial ViewState and hook into View property changes
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        DetachViewDescriptor();
+    }
+
+    private void AttachViewDescriptor()
+    {
+        if (_descriptor is not null)
+        {
+            return;
+        }
+
         _descriptor = DependencyPropertyDescriptor.FromProperty(
             ViewProperty,
             typeof(System.Windows.Controls.ListView)
         );
         _descriptor?.AddValueChanged(this, OnViewPropertyChanged);
-        UpdateViewState(); // set the initial state
     }
 
-    private void OnUnloaded(object sender, RoutedEventArgs e)
+    private void DetachViewDescriptor()
     {
-        Unloaded -= OnUnloaded;
-
         _descriptor?.RemoveValueChanged(this, OnViewPropertyChanged);
+        _descriptor = null;
     }
 
     private void OnViewPropertyChanged(object? sender, EventArgs e)

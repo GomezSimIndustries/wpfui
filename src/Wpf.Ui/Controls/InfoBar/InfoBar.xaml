@@ -62,23 +62,33 @@
                                         FontSize="16" />
                                 </Border>
 
-                                <WrapPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock
-                                        x:Name="TitleText"
-                                        Margin="0,0,14,0"
-                                        ScrollViewer.CanContentScroll="False"
-                                        Text="{TemplateBinding Title}"
-                                        TextElement.FontSize="{TemplateBinding FontSize}"
-                                        TextElement.FontWeight="SemiBold"
-                                        TextWrapping="Wrap" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <WrapPanel>
+                                        <TextBlock
+                                            x:Name="TitleText"
+                                            Margin="0,0,14,0"
+                                            ScrollViewer.CanContentScroll="False"
+                                            Text="{TemplateBinding Title}"
+                                            TextElement.FontSize="{TemplateBinding FontSize}"
+                                            TextElement.FontWeight="SemiBold"
+                                            TextWrapping="Wrap" />
 
-                                    <TextBlock
-                                        Margin="0"
-                                        ScrollViewer.CanContentScroll="False"
-                                        Text="{TemplateBinding Message}"
-                                        TextElement.FontSize="{TemplateBinding FontSize}"
-                                        TextWrapping="Wrap" />
-                                </WrapPanel>
+                                        <TextBlock
+                                            Margin="0"
+                                            ScrollViewer.CanContentScroll="False"
+                                            Text="{TemplateBinding Message}"
+                                            TextElement.FontSize="{TemplateBinding FontSize}"
+                                            TextWrapping="Wrap" />
+                                    </WrapPanel>
+
+                                    <ContentPresenter
+                                        x:Name="InfoBarContentPresenter"
+                                        Margin="0,8,0,0"
+                                        Content="{TemplateBinding Content}"
+                                        ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                        ContentTemplate="{TemplateBinding ContentTemplate}"
+                                        ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}" />
+                                </StackPanel>
 
                                 <!-- Action Button (visible by default, collapsed when ActionButtonText is null/empty) -->
                                 <controls:Button
@@ -129,6 +139,11 @@
                         </Trigger>
                         <Trigger Property="Title" Value="">
                             <Setter TargetName="TitleText" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+
+                        <!-- Collapse the content presenter when Content is null to release layout space -->
+                        <Trigger Property="Content" Value="{x:Null}">
+                            <Setter TargetName="InfoBarContentPresenter" Property="Visibility" Value="Collapsed" />
                         </Trigger>
 
                         <Trigger Property="Severity" Value="Informational">

@@ -73,9 +73,16 @@ public class DropDownButton : Button
     /// <param name="value">The new value of <see cref="FlyoutProperty"/>.</param>
     protected virtual void OnFlyoutChanged(object value)
     {
-        if (value is ContextMenu contextMenu)
+        if (_contextMenu is not null)
         {
-            _contextMenu = contextMenu;
+            _contextMenu.Opened -= OnContextMenuOpened;
+            _contextMenu.Closed -= OnContextMenuClosed;
+        }
+
+        _contextMenu = value as ContextMenu;
+
+        if (_contextMenu is not null)
+        {
             _contextMenu.Opened += OnContextMenuOpened;
             _contextMenu.Closed += OnContextMenuClosed;
         }

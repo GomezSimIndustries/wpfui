@@ -3,8 +3,6 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using Microsoft.Win32;
-
 namespace Wpf.Ui.Appearance;
 
 /// <summary>
@@ -22,6 +20,11 @@ namespace Wpf.Ui.Appearance;
 public static class SystemThemeManager
 {
     private static SystemTheme _cachedTheme = SystemTheme.Unknown;
+
+    /// <summary>
+    /// Gets or sets the source of the live Windows theme signals used to classify the system theme.
+    /// </summary>
+    internal static ISystemThemeSource Source { get; set; } = new RegistrySystemThemeSource();
 
     /// <summary>
     /// Gets the Windows glass color.
@@ -57,99 +60,123 @@ public static class SystemThemeManager
         _cachedTheme = GetCurrentSystemTheme();
     }
 
-    private static SystemTheme GetCurrentSystemTheme()
+    /// <summary>
+    /// Classifies the Windows theme from its registry filename, the live high-contrast flag, and the app/system light-mode registry values.
+    /// </summary>
+    /// <remarks>High contrast takes precedence: a filename that does not match one of the four known high-contrast themes falls back to <see cref="SystemTheme.Custom"/> rather than a light or dark match.</remarks>
+    internal static SystemTheme ClassifySystemTheme(
+        string currentThemeFileName,
+        bool isHighContrastActive,
+        object? rawAppsUseLightTheme,
+        object? rawSystemUsesLightTheme
+    )
     {
-        var currentTheme =
-            Registry.GetValue(
-                "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes",
-                "CurrentTheme",
-                "aero.theme"
-            ) as string
-            ?? string.Empty;
+        SystemTheme? matchedTheme = MatchThemeFileName(currentThemeFileName);
 
-        if (!string.IsNullOrEmpty(currentTheme))
+        if (isHighContrastActive)
         {
-            // This may be changed in the next versions, check the Insider previews
-            if (currentTheme.Contains("basic.theme", StringComparison.OrdinalIgnoreCase))
-            {
-                return SystemTheme.Light;
-            }
-
-            if (currentTheme.Contains("aero.theme", StringComparison.OrdinalIgnoreCase))
-            {
-                return SystemTheme.Light;
-            }
-
-            if (currentTheme.Contains("dark.theme", StringComparison.OrdinalIgnoreCase))
-            {
-                return SystemTheme.Dark;
-            }
-
-            if (currentTheme.Contains("hcblack.theme", StringComparison.OrdinalIgnoreCase))
-            {
-                return SystemTheme.HCBlack;
-            }
-
-            if (currentTheme.Contains("hcwhite.theme", StringComparison.OrdinalIgnoreCase))
-            {
-                return SystemTheme.HCWhite;
-            }
-
-            if (currentTheme.Contains("hc1.theme", StringComparison.OrdinalIgnoreCase))
-            {
-                return SystemTheme.HC1;
-            }
-
-            if (currentTheme.Contains("hc2.theme", StringComparison.OrdinalIgnoreCase))
-            {
-                return SystemTheme.HC2;
-            }
-
-            if (currentTheme.Contains("themea.theme", StringComparison.OrdinalIgnoreCase))
-            {
-                return SystemTheme.Glow;
-            }
-
-            if (currentTheme.Contains("themeb.theme", StringComparison.OrdinalIgnoreCase))
-            {
-                return SystemTheme.CapturedMotion;
-            }
-
-            if (currentTheme.Contains("themec.theme", StringComparison.OrdinalIgnoreCase))
-            {
-                return SystemTheme.Sunrise;
-            }
-
-            if (currentTheme.Contains("themed.theme", StringComparison.OrdinalIgnoreCase))
-            {
-                return SystemTheme.Flow;
-            }
+            return matchedTheme
+                is SystemTheme.HC1
+                    or SystemTheme.HC2
+                    or SystemTheme.HCBlack
+                    or SystemTheme.HCWhite
+                ? matchedTheme.Value
+                : SystemTheme.Custom;
         }
 
-        /*if (currentTheme.Contains("custom.theme"))
-            return ; custom can be light or dark*/
-        var rawAppsUseLightTheme = Registry.GetValue(
-            "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-            "AppsUseLightTheme",
-            1
-        );
+        if (matchedTheme.HasValue)
+        {
+            return matchedTheme.Value;
+        }
 
         if (rawAppsUseLightTheme is 0)
         {
             return SystemTheme.Dark;
         }
-        else if (rawAppsUseLightTheme is 1)
+
+        if (rawAppsUseLightTheme is 1)
         {
             return SystemTheme.Light;
         }
 
-        var rawSystemUsesLightTheme =
-            Registry.GetValue(
-                "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-                "SystemUsesLightTheme",
-                1
-            ) ?? 1;
-
         return rawSystemUsesLightTheme is 0 ? SystemTheme.Dark : SystemTheme.Light;
+    }
+
+    private static SystemTheme? MatchThemeFileName(string currentThemeFileName)
+    {
+        if (string.IsNullOrEmpty(currentThemeFileName))
+        {
+            return null;
+        }
+
+        // This may be changed in the next versions, check the Insider previews
+        if (currentThemeFileName.Contains("basic.theme", StringComparison.OrdinalIgnoreCase))
+        {
+            return SystemTheme.Light;
+        }
+
+        if (currentThemeFileName.Contains("aero.theme", StringComparison.OrdinalIgnoreCase))
+        {
+            return SystemTheme.Light;
+        }
+
+        if (currentThemeFileName.Contains("dark.theme", StringComparison.OrdinalIgnoreCase))
+        {
+            return SystemTheme.Dark;
+        }
+
+        if (currentThemeFileName.Contains("hcblack.theme", StringComparison.OrdinalIgnoreCase))
+        {
+            return SystemTheme.HCBlack;
+        }
+
+        if (currentThemeFileName.Contains("hcwhite.theme", StringComparison.OrdinalIgnoreCase))
+        {
+            return SystemTheme.HCWhite;
+        }
+
+        if (currentThemeFileName.Contains("hc1.theme", StringComparison.OrdinalIgnoreCase))
+        {
+            return SystemTheme.HC1;
+        }
+
+        if (currentThemeFileName.Contains("hc2.theme", StringComparison.OrdinalIgnoreCase))
+        {
+            return SystemTheme.HC2;
+        }
+
+        if (currentThemeFileName.Contains("themea.theme", StringComparison.OrdinalIgnoreCase))
+        {
+            return SystemTheme.Glow;
+        }
+
+        if (currentThemeFileName.Contains("themeb.theme", StringComparison.OrdinalIgnoreCase))
+        {
+            return SystemTheme.CapturedMotion;
+        }
+
+        if (currentThemeFileName.Contains("themec.theme", StringComparison.OrdinalIgnoreCase))
+        {
+            return SystemTheme.Sunrise;
+        }
+
+        if (currentThemeFileName.Contains("themed.theme", StringComparison.OrdinalIgnoreCase))
+        {
+            return SystemTheme.Flow;
+        }
+
+        return null;
+    }
+
+    private static SystemTheme GetCurrentSystemTheme()
+    {
+        ISystemThemeSource source = Source;
+
+        return ClassifySystemTheme(
+            source.CurrentThemeFileName,
+            source.IsHighContrastActive,
+            source.RawAppsUseLightTheme,
+            source.RawSystemUsesLightTheme
+        );
     }
 }

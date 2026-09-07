@@ -186,20 +186,34 @@ public static class ApplicationThemeManager
 
         SystemTheme systemTheme = GetSystemTheme();
 
-        ApplicationTheme themeToSet = ApplicationTheme.Light;
-
-        if (systemTheme is SystemTheme.Dark or SystemTheme.CapturedMotion or SystemTheme.Glow)
-        {
-            themeToSet = ApplicationTheme.Dark;
-        }
-        else if (
-            systemTheme is SystemTheme.HC1 or SystemTheme.HC2 or SystemTheme.HCBlack or SystemTheme.HCWhite
-        )
-        {
-            themeToSet = ApplicationTheme.HighContrast;
-        }
+        ApplicationTheme themeToSet = MapSystemThemeToApplicationTheme(systemTheme);
 
         Apply(themeToSet, updateAccent: updateAccent);
+    }
+
+    /// <summary>
+    /// Maps a classified <see cref="SystemTheme"/> to the <see cref="ApplicationTheme"/> it applies.
+    /// </summary>
+    internal static ApplicationTheme MapSystemThemeToApplicationTheme(SystemTheme systemTheme)
+    {
+        if (systemTheme is SystemTheme.Dark or SystemTheme.CapturedMotion or SystemTheme.Glow)
+        {
+            return ApplicationTheme.Dark;
+        }
+
+        if (
+            systemTheme
+            is SystemTheme.HC1
+                or SystemTheme.HC2
+                or SystemTheme.HCBlack
+                or SystemTheme.HCWhite
+                or SystemTheme.Custom
+        )
+        {
+            return ApplicationTheme.HighContrast;
+        }
+
+        return ApplicationTheme.Light;
     }
 
     /// <summary>

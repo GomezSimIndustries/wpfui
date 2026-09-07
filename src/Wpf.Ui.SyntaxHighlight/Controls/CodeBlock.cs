@@ -19,6 +19,7 @@ namespace Wpf.Ui.SyntaxHighlight.Controls;
 public class CodeBlock : System.Windows.Controls.ContentControl
 {
     private string _sourceCode = string.Empty;
+    private bool _isSubscribedToThemeChanges;
 
     /// <summary>
     /// Property for <see cref="SyntaxContent"/>.
@@ -60,7 +61,30 @@ public class CodeBlock : System.Windows.Controls.ContentControl
     {
         SetValue(ButtonCommandProperty, new RelayCommand<string>(OnTemplateButtonClick));
 
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (_isSubscribedToThemeChanges)
+        {
+            return;
+        }
+
         ApplicationThemeManager.Changed += ThemeOnChanged;
+        _isSubscribedToThemeChanges = true;
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (!_isSubscribedToThemeChanges)
+        {
+            return;
+        }
+
+        ApplicationThemeManager.Changed -= ThemeOnChanged;
+        _isSubscribedToThemeChanges = false;
     }
 
     private void ThemeOnChanged(ApplicationTheme currentApplicationTheme, Color systemAccent)

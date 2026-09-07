@@ -718,6 +718,13 @@ public partial class ContentDialog : ContentControl
             throw new InvalidOperationException("DialogHost was not set");
         }
 
+        if (IsShowing)
+        {
+            throw new InvalidOperationException(
+                "ShowAsync was called on a ContentDialog instance that is already showing."
+            );
+        }
+
         // Uses `RunContinuationsAsynchronously` to execute continuations asynchronously
         // rather than synchronously on the caller's stack when TCS completes.
         //
@@ -725,13 +732,13 @@ public partial class ContentDialog : ContentControl
         // - Prevents UI-thread reentrancy
         // - Eliminates deadlock risks
         // - Ensures predictable continuation scheduling
-        Tcs = new TaskCompletionSource<ContentDialogResult>(
+        var tcs = new TaskCompletionSource<ContentDialogResult>(
             TaskCreationOptions.RunContinuationsAsynchronously
         );
+        Tcs = tcs;
 
         CancellationTokenRegistration tokenRegistration = cancellationToken.Register(
-            o => Tcs.TrySetCanceled((CancellationToken)o!),
-            cancellationToken
+            () => tcs.TrySetCanceled(cancellationToken)
         );
 
         ContentDialogResult result = ContentDialogResult.None;
@@ -747,7 +754,7 @@ public partial class ContentDialog : ContentControl
                 _dialogHost!.Content = this;
             }
 
-            result = await Tcs.Task;
+            result = await tcs.Task;
 
             return result;
         }

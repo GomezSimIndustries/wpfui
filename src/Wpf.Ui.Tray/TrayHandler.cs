@@ -8,7 +8,7 @@ namespace Wpf.Ui.Tray;
 /// <summary>
 /// Manages the Win32 API and Windows messages.
 /// </summary>
-internal class TrayHandler : HwndSource
+internal class TrayHandler : HwndSource, ITrayHookWindow
 {
     /// <summary>
     /// Gets or sets the id of the hooked element.

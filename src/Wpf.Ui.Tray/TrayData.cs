@@ -3,6 +3,8 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using System.Threading;
+
 namespace Wpf.Ui.Tray;
 
 /// <summary>
@@ -10,8 +12,18 @@ namespace Wpf.Ui.Tray;
 /// </summary>
 internal static class TrayData
 {
+    private static int _lastAllocatedId;
+
     /// <summary>
     /// Gets or sets the collection of registered tray icons.
     /// </summary>
     public static List<INotifyIcon> NotifyIcons { get; set; } = new();
+
+    /// <summary>
+    /// Allocates a tray icon identifier that has never been handed out before.
+    /// </summary>
+    public static int AllocateId()
+    {
+        return Interlocked.Increment(ref _lastAllocatedId);
+    }
 }

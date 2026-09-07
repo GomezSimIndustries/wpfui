@@ -34,7 +34,7 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
     public ImageSource? Icon { get; set; } = default!;
 
     /// <inheritdoc />
-    public HwndSource HookWindow { get; set; } = default!;
+    public ITrayHookWindow HookWindow { get; set; } = default!;
 
     /// <inheritdoc />
     public ContextMenu? ContextMenu { get; set; } = default!;

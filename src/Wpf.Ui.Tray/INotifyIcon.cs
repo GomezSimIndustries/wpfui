@@ -42,7 +42,7 @@ internal interface INotifyIcon
     /// <summary>
     /// Gets or sets the hWnd that will receive messages for the icon.
     /// </summary>
-    HwndSource HookWindow { get; set; }
+    ITrayHookWindow HookWindow { get; set; }
 
     /// <summary>
     /// Gets or sets the menu displayed when the icon is right-clicked.

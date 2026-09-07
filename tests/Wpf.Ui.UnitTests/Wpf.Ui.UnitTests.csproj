@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Wpf.Ui\Wpf.Ui.csproj" />
+    <ProjectReference Include="..\..\src\Wpf.Ui.Tray\Wpf.Ui.Tray.csproj" />
   </ItemGroup>
 
 </Project>

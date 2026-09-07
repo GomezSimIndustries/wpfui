@@ -55,8 +55,11 @@ public class BreadcrumbBar : System.Windows.Controls.ItemsControl
     );
 
     /// <summary>
-    /// Gets or sets custom command executed after selecting the item.
+    /// Gets or sets the command executed after selecting the item.
     /// </summary>
+    /// <remarks>
+    /// Executes with the clicked item when the command accepts it, otherwise executes with no parameter.
+    /// </remarks>
     [Bindable(true)]
     [Category("Action")]
     [Localizability(LocalizationCategory.NeverLocalize)]
@@ -91,12 +94,16 @@ public class BreadcrumbBar : System.Windows.Controls.ItemsControl
         var args = new BreadcrumbBarItemClickedEventArgs(ItemClickedEvent, this, item, index);
         RaiseEvent(args);
 
-        if (Command?.CanExecute(item) ?? false)
+        if (Command is null)
+        {
+            return;
+        }
+
+        if (Command.CanExecute(item))
         {
             Command.Execute(item);
         }
-
-        if (Command?.CanExecute(null) ?? false)
+        else if (Command.CanExecute(null))
         {
             Command.Execute(null);
         }

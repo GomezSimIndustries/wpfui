@@ -34,8 +34,6 @@ public partial class TitleBar : System.Windows.Controls.Control, IThemeControl
     private const string ElementRestoreButton = "PART_RestoreButton";
     private const string ElementCloseButton = "PART_CloseButton";
 
-    private static DpiScale? dpiScale;
-
     private DependencyObject? _parentWindow;
 
     public event EventHandler<HwndProcEventArgs>? WndProcInvoked;
@@ -437,8 +435,6 @@ public partial class TitleBar : System.Windows.Controls.Control, IThemeControl
     {
         SetValue(TemplateButtonCommandProperty, new RelayCommand<TitleBarButtonType>(OnTemplateButtonClick));
 
-        dpiScale ??= VisualTreeHelper.GetDpi(this);
-
         _titleBlock = new TextBlock();
         _titleBlock.VerticalAlignment = VerticalAlignment.Center;
         _ = _titleBlock.SetBinding(
@@ -764,19 +760,28 @@ public partial class TitleBar : System.Windows.Controls.Control, IThemeControl
     /// <summary>
     /// Show 'SystemMenu' on mouse right button up.
     /// </summary>
+    /// <remarks>
+    /// <see cref="UIElement.PointToScreen"/> returns physical device pixels; <see cref="SystemCommands.ShowSystemMenu(Window, Point)"/>
+    /// expects device-independent pixels at the window's own DPI. The point is converted using this
+    /// visual's current <see cref="DpiScale"/>, queried fresh at the time of the click.
+    /// </remarks>
     private void TitleBar_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
-        Point point = PointToScreen(e.GetPosition(this));
+        Point devicePoint = PointToScreen(e.GetPosition(this));
+        DpiScale dpi = VisualTreeHelper.GetDpi(this);
 
-        if (dpiScale is null)
-        {
-            throw new InvalidOperationException("dpiScale is not initialized.");
-        }
+        SystemCommands.ShowSystemMenu(_parentWindow as Window, ToDeviceIndependentPoint(devicePoint, dpi));
+    }
 
-        SystemCommands.ShowSystemMenu(
-            _parentWindow as Window,
-            new Point(point.X / dpiScale.Value.DpiScaleX, point.Y / dpiScale.Value.DpiScaleY)
-        );
+    /// <summary>
+    /// Converts a point in physical device pixels to the device-independent pixels <see cref="SystemCommands.ShowSystemMenu(Window, Point)"/> expects.
+    /// </summary>
+    /// <param name="devicePoint">A point in physical device pixels, positive or negative.</param>
+    /// <param name="dpi">The DPI scale to convert against.</param>
+    /// <returns>The equivalent point in device-independent pixels.</returns>
+    internal static Point ToDeviceIndependentPoint(Point devicePoint, DpiScale dpi)
+    {
+        return new Point(devicePoint.X / dpi.DpiScaleX, devicePoint.Y / dpi.DpiScaleY);
     }
 
     private T GetTemplateChild<T>(string name)

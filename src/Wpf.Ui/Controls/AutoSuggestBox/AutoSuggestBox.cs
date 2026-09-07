@@ -7,6 +7,7 @@ using System.Collections;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using Windows.Win32;
 using Wpf.Ui.Input;
 
@@ -250,7 +251,6 @@ public class AutoSuggestBox : ItemsControl, IIconControl
 
     private bool _changingTextAfterSuggestionChosen;
     private bool _isChangedTextOutSideOfTextBox;
-    private object? _selectedItem;
     private bool? _isHwndHookSubscribed;
 
     public AutoSuggestBox()
@@ -322,8 +322,6 @@ public class AutoSuggestBox : ItemsControl, IIconControl
 
         if (SuggestionsList != null)
         {
-            SuggestionsList.SelectionChanged -= SuggestionsListOnSelectionChanged;
-            SuggestionsList.SelectionChanged += SuggestionsListOnSelectionChanged;
             SuggestionsList.PreviewKeyDown -= SuggestionsListOnPreviewKeyDown;
             SuggestionsList.PreviewKeyDown += SuggestionsListOnPreviewKeyDown;
             SuggestionsList.LostKeyboardFocus -= SuggestionsListOnLostKeyboardFocus;
@@ -351,7 +349,6 @@ public class AutoSuggestBox : ItemsControl, IIconControl
 
         if (SuggestionsList != null)
         {
-            SuggestionsList.SelectionChanged -= SuggestionsListOnSelectionChanged;
             SuggestionsList.PreviewKeyDown -= SuggestionsListOnPreviewKeyDown;
             SuggestionsList.LostKeyboardFocus -= SuggestionsListOnLostKeyboardFocus;
             SuggestionsList.PreviewMouseLeftButtonUp -= SuggestionsListOnPreviewMouseLeftButtonUp;
@@ -477,7 +474,7 @@ public class AutoSuggestBox : ItemsControl, IIconControl
             return;
         }
 
-        SetCurrentValue(IsSuggestionListOpenProperty, true);
+        SetCurrentValue(IsSuggestionListOpenProperty, Items.Count > 0);
     }
 
     private void SuggestionsListOnLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
@@ -499,32 +496,41 @@ public class AutoSuggestBox : ItemsControl, IIconControl
 
         SetCurrentValue(IsSuggestionListOpenProperty, false);
 
-        OnSelectedChanged(SuggestionsList!.SelectedItem);
+        if (SuggestionsList!.SelectedItem is { } selectedItem)
+        {
+            OnSelectedChanged(selectedItem);
+        }
     }
 
     private void SuggestionsListOnPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (SuggestionsList!.SelectedItem is not null)
+        if (GetClickedSuggestion(e.OriginalSource) is not { } clickedSuggestion)
         {
             return;
         }
 
         SetCurrentValue(IsSuggestionListOpenProperty, false);
 
-        if (_selectedItem is not null)
-        {
-            OnSuggestionChosen(_selectedItem);
-        }
+        OnSelectedChanged(clickedSuggestion);
     }
 
-    private void SuggestionsListOnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    private object? GetClickedSuggestion(object originalSource)
     {
-        if (SuggestionsList!.SelectedItem is null)
+        var element = originalSource as DependencyObject;
+
+        while (element is not null and not ListBoxItem)
         {
-            return;
+            element = VisualTreeHelper.GetParent(element);
         }
 
-        OnSelectedChanged(SuggestionsList.SelectedItem);
+        if (element is not ListBoxItem container)
+        {
+            return null;
+        }
+
+        object item = SuggestionsList!.ItemContainerGenerator.ItemFromContainer(container);
+
+        return ReferenceEquals(item, DependencyProperty.UnsetValue) ? null : item;
     }
 
     private IntPtr Hook(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled)
@@ -547,8 +553,6 @@ public class AutoSuggestBox : ItemsControl, IIconControl
     private void OnSelectedChanged(object selectedObj)
     {
         OnSuggestionChosen(selectedObj);
-
-        _selectedItem = selectedObj;
     }
 
     private void UpdateTexBoxTextAfterSelection(object selectedObj)

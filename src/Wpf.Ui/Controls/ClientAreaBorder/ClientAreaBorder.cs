@@ -48,9 +48,9 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
     /*private const int SM_CXFRAME = 32;
     private const int SM_CYFRAME = 33;
     private const int SM_CXPADDEDBORDER = 92;*/
-    private static Thickness? _paddedBorderThickness;
-    private static Thickness? _resizeFrameBorderThickness;
-    private static Thickness? _windowChromeNonClientFrameThickness;
+    private Thickness? _paddedBorderThickness;
+    private Thickness? _resizeFrameBorderThickness;
+    private Thickness? _windowChromeNonClientFrameThickness;
     private bool _borderBrushApplied = false;
     private Window? _oldWindow;
 
@@ -68,7 +68,7 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
                 return _paddedBorderThickness.Value;
             }
 
-            var paddedBorder = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXPADDEDBORDER);
+            var paddedBorder = GetPaddedBorderMetric();
 
             (double factorX, double factorY) = GetDpi();
 
@@ -89,13 +89,8 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
     /// <summary>
     /// Gets the system <see cref="SYSTEM_METRICS_INDEX.SM_CXFRAME"/> and <see cref="SYSTEM_METRICS_INDEX.SM_CYFRAME"/> values in WPF units.
     /// </summary>
-    public static Thickness ResizeFrameBorderThickness =>
-        _resizeFrameBorderThickness ??= new Thickness(
-            SystemParameters.ResizeFrameVerticalBorderWidth,
-            SystemParameters.ResizeFrameHorizontalBorderHeight,
-            SystemParameters.ResizeFrameVerticalBorderWidth,
-            SystemParameters.ResizeFrameHorizontalBorderHeight
-        );
+    public Thickness ResizeFrameBorderThickness =>
+        _resizeFrameBorderThickness ??= GetResizeFrameBorderThicknessCore();
 
     /// <summary>
     /// Gets the thickness of the window's non-client frame used for maximizing the window with a custom chrome.
@@ -140,6 +135,7 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
         {
             oldWindow.StateChanged -= OnWindowStateChanged;
             oldWindow.Closing -= OnWindowClosing;
+            DetachSettingsChangeHook(oldWindow);
         }
 
         Window? newWindow = Window.GetWindow(this);
@@ -148,17 +144,24 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
         {
             newWindow.StateChanged -= OnWindowStateChanged; // Unsafe
             newWindow.StateChanged += OnWindowStateChanged;
-            Thickness padding =
-                newWindow.WindowState == WindowState.Maximized
-                    ? WindowChromeNonClientFrameThickness
-                    : default;
-            SetCurrentValue(PaddingProperty, padding);
             newWindow.Closing += OnWindowClosing;
+            AttachSettingsChangeHook(newWindow);
         }
 
         _oldWindow = newWindow;
+        InvalidateMetrics();
+        ApplyPaddingForWindow(newWindow);
 
         ApplyDefaultWindowBorder();
+    }
+
+    /// <inheritdoc />
+    protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
+    {
+        base.OnDpiChanged(oldDpi, newDpi);
+
+        InvalidateMetrics();
+        ApplyPaddingForWindow(_oldWindow);
     }
 
     private void OnWindowClosing(object? sender, CancelEventArgs e)
@@ -167,6 +170,7 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
         if (_oldWindow != null)
         {
             _oldWindow.Closing -= OnWindowClosing;
+            DetachSettingsChangeHook(_oldWindow);
         }
     }
 
@@ -177,9 +181,67 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
             return;
         }
 
+        ApplyPaddingForWindow(window);
+    }
+
+    private void ApplyPaddingForWindow(Window? window)
+    {
+        if (window is null)
+        {
+            return;
+        }
+
         Thickness padding =
             window.WindowState == WindowState.Maximized ? WindowChromeNonClientFrameThickness : default;
         SetCurrentValue(PaddingProperty, padding);
+    }
+
+    private void InvalidateMetrics()
+    {
+        _paddedBorderThickness = null;
+        _resizeFrameBorderThickness = null;
+        _windowChromeNonClientFrameThickness = null;
+    }
+
+    private void AttachSettingsChangeHook(Window window)
+    {
+        if (PresentationSource.FromVisual(window) is HwndSource hwndSource)
+        {
+            hwndSource.AddHook(OnWindowMessage);
+        }
+        else
+        {
+            window.SourceInitialized += OnWindowSourceInitialized;
+        }
+    }
+
+    private void DetachSettingsChangeHook(Window window)
+    {
+        window.SourceInitialized -= OnWindowSourceInitialized;
+
+        if (PresentationSource.FromVisual(window) is HwndSource hwndSource)
+        {
+            hwndSource.RemoveHook(OnWindowMessage);
+        }
+    }
+
+    private void OnWindowSourceInitialized(object? sender, EventArgs e)
+    {
+        if (sender is Window window && PresentationSource.FromVisual(window) is HwndSource hwndSource)
+        {
+            hwndSource.AddHook(OnWindowMessage);
+        }
+    }
+
+    private IntPtr OnWindowMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if ((uint)msg == PInvoke.WM_SETTINGCHANGE)
+        {
+            InvalidateMetrics();
+            ApplyPaddingForWindow(_oldWindow);
+        }
+
+        return IntPtr.Zero;
     }
 
     private void ApplyDefaultWindowBorder()
@@ -203,7 +265,27 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
         _oldWindow.SetCurrentValue(System.Windows.Controls.Control.BorderThicknessProperty, new Thickness(1));
     }
 
-    private (double FactorX, double FactorY) GetDpi()
+    /// <summary>
+    /// Gets the raw <see cref="SYSTEM_METRICS_INDEX.SM_CXPADDEDBORDER"/> value for this instance.
+    /// </summary>
+    protected virtual int GetPaddedBorderMetric() =>
+        PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXPADDEDBORDER);
+
+    /// <summary>
+    /// Gets the resize frame border thickness in WPF units for this instance.
+    /// </summary>
+    protected virtual Thickness GetResizeFrameBorderThicknessCore() =>
+        new Thickness(
+            SystemParameters.ResizeFrameVerticalBorderWidth,
+            SystemParameters.ResizeFrameHorizontalBorderHeight,
+            SystemParameters.ResizeFrameVerticalBorderWidth,
+            SystemParameters.ResizeFrameHorizontalBorderHeight
+        );
+
+    /// <summary>
+    /// Gets the DPI scale factors for the monitor this instance currently renders on.
+    /// </summary>
+    protected virtual (double FactorX, double FactorY) GetDpi()
     {
         if (PresentationSource.FromVisual(this) is { } source)
         {

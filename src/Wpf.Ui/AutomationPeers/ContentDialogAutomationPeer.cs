@@ -91,12 +91,28 @@ internal sealed class ContentDialogAutomationPeer : UIElementAutomationPeer, IWi
     /// <inheritdoc/>
     protected override string? GetNameCore()
     {
+        string name = base.GetNameCore();
+        if (!string.IsNullOrEmpty(name))
+        {
+            return name;
+        }
+
+        AutomationPeer? labeledBy = GetLabeledByCore();
+        if (labeledBy is not null)
+        {
+            name = labeledBy.GetName();
+            if (!string.IsNullOrEmpty(name))
+            {
+                return name;
+            }
+        }
+
         if (Owner is ContentDialog dialog)
         {
             return dialog.Title as string ?? dialog.Title?.ToString();
         }
 
-        return base.GetNameCore();
+        return name;
     }
 
     /// <inheritdoc/>
@@ -146,9 +162,7 @@ internal sealed class ContentDialogAutomationPeer : UIElementAutomationPeer, IWi
     /// <returns>An object implementing the requested pattern or <see langword="null"/> when not supported.</returns>
     public override object? GetPattern(PatternInterface pattern)
     {
-        // Include PatternInterface.ScrollItem to align with WinUI3 behavior: WinUI3 exposes this pattern
-        // for dialog-like popups, and exposing it here helps automation clients that rely on that behavior.
-        if (pattern is PatternInterface.Window or PatternInterface.ScrollItem)
+        if (pattern is PatternInterface.Window)
         {
             return this;
         }

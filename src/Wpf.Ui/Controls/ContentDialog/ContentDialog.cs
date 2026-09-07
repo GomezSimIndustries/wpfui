@@ -798,6 +798,17 @@ public partial class ContentDialog : ContentControl
     }
 
     /// <summary>
+    /// Resolves a pending <see cref="ShowAsync" /> call with <see cref="ContentDialogResult.None"/> when the hosting control tears down without an explicit close.
+    /// </summary>
+    internal void SettleForHostTeardown()
+    {
+        if (Tcs is { Task.IsCompleted: false })
+        {
+            _ = Tcs.TrySetResult(ContentDialogResult.None);
+        }
+    }
+
+    /// <summary>
     /// Occurs after ContentPresenter.Content = null
     /// </summary>
     protected virtual void OnClosed(ContentDialogResult result)

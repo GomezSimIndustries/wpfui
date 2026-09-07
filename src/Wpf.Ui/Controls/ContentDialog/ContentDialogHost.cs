@@ -76,6 +76,9 @@ public class ContentDialogHost : ContentControl
 
     private readonly ContentDialogHostController _controller;
 
+    // Window this instance is currently registered against, captured at RegisterHost and cleared on Unloaded.
+    private Window? _registeredWindow;
+
     static ContentDialogHost()
     {
         DefaultStyleKeyProperty.OverrideMetadata(
@@ -185,7 +188,7 @@ public class ContentDialogHost : ContentControl
 
     private void ContentDialogHost_Unloaded(object? sender, RoutedEventArgs e)
     {
-        var window = Window.GetWindow(this);
+        var window = _registeredWindow;
         if (window == null)
         {
             return;
@@ -198,6 +201,19 @@ public class ContentDialogHost : ContentControl
                 WindowHosts.Remove(window);
             }
         }
+
+        _registeredWindow = null;
+
+        // Settles the active dialog only when the host is no longer parented.
+        if (IsDetachedFromParent() && Content is ContentDialog activeDialog)
+        {
+            activeDialog.SettleForHostTeardown();
+        }
+    }
+
+    private bool IsDetachedFromParent()
+    {
+        return VisualTreeHelper.GetParent(this) == null && LogicalTreeHelper.GetParent(this) == null;
     }
 
     private void RegisterHostForWindow()
@@ -223,10 +239,12 @@ public class ContentDialogHost : ContentControl
                 }
 
                 // already registered for this window and it's this instance
+                _registeredWindow = window;
                 return;
             }
 
             WindowHosts.Add(window, this);
+            _registeredWindow = window;
         }
     }
 }

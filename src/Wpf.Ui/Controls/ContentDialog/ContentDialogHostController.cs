@@ -32,6 +32,9 @@ internal sealed class ContentDialogHostController
     private List<InputBinding>? _hostInputBindings;
     private List<CommandBinding>? _hostCommandBindings;
 
+    // Window whose input was blocked, captured at BlockHostWindowInput and cleared at UnblockHostWindowInput.
+    private Window? _blockedWindow;
+
     private bool _hostWindowBlocked;
     private bool _siblingsIsDisabled;
     private bool _dialogActive;
@@ -348,6 +351,8 @@ internal sealed class ContentDialogHostController
             return;
         }
 
+        _blockedWindow = window;
+
         AccessKeyManager.AddAccessKeyPressedHandler(window, HostAccessKeySuppressHandler);
         CommandManager.AddPreviewExecutedHandler(window, PreviewExecutedSuppressHandler);
         CommandManager.AddPreviewCanExecuteHandler(window, PreviewCanExecuteSuppressHandler);
@@ -390,7 +395,12 @@ internal sealed class ContentDialogHostController
 
     private void UnblockHostWindowInput()
     {
-        if (Window.GetWindow(_host) is not { } window)
+        if (!_hostWindowBlocked)
+        {
+            return;
+        }
+
+        if (_blockedWindow is not { } window)
         {
             _hostWindowBlocked = false;
             return;
@@ -437,6 +447,7 @@ internal sealed class ContentDialogHostController
             _hostCommandBindings = null;
         }
 
+        _blockedWindow = null;
         _hostWindowBlocked = false;
     }
 

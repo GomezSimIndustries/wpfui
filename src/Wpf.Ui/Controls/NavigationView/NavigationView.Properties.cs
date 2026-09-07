@@ -563,6 +563,10 @@ public partial class NavigationView
         set => SetValue(ContentScrollViewerVisibilityProperty, value);
     }
 
+    private NotifyCollectionChangedEventHandler? _menuItemsSourceChangedHandler;
+    private NotifyCollectionChangedEventHandler? _footerMenuItemsSourceChangedHandler;
+    private NotifyCollectionChangedEventHandler? _headerMenuItemsSourceChangedHandler;
+
     private void OnMenuItemsSource_CollectionChanged(
         object? sender,
         IList collection,
@@ -599,7 +603,7 @@ public partial class NavigationView
                 break;
 
             case NotifyCollectionChangedAction.Move:
-                var moveItem = MenuItems[e.OldStartingIndex];
+                var moveItem = collection[e.OldStartingIndex];
                 collection.RemoveAt(e.OldStartingIndex);
                 collection.Insert(e.NewStartingIndex, moveItem);
                 break;
@@ -677,6 +681,15 @@ public partial class NavigationView
             return;
         }
 
+        if (
+            e.OldValue is INotifyCollectionChanged oldCollection
+            && navigationView._menuItemsSourceChangedHandler is { } oldHandler
+        )
+        {
+            oldCollection.CollectionChanged -= oldHandler;
+            navigationView._menuItemsSourceChangedHandler = null;
+        }
+
         navigationView.MenuItems.Clear();
 
         if (e.NewValue is IEnumerable newItemsSource and not string)
@@ -693,8 +706,17 @@ public partial class NavigationView
 
         if (e.NewValue is INotifyCollectionChanged oc)
         {
-            oc.CollectionChanged += (s, e) =>
-                navigationView.OnMenuItemsSource_CollectionChanged(oc, navigationView.MenuItems, e);
+            NotifyCollectionChangedEventHandler handler = (s, args) =>
+            {
+                if (!ReferenceEquals(navigationView.MenuItemsSource, oc))
+                {
+                    return;
+                }
+
+                navigationView.OnMenuItemsSource_CollectionChanged(oc, navigationView.MenuItems, args);
+            };
+            navigationView._menuItemsSourceChangedHandler = handler;
+            oc.CollectionChanged += handler;
         }
     }
 
@@ -719,6 +741,15 @@ public partial class NavigationView
             return;
         }
 
+        if (
+            e.OldValue is INotifyCollectionChanged oldCollection
+            && navigationView._footerMenuItemsSourceChangedHandler is { } oldHandler
+        )
+        {
+            oldCollection.CollectionChanged -= oldHandler;
+            navigationView._footerMenuItemsSourceChangedHandler = null;
+        }
+
         navigationView.FooterMenuItems.Clear();
 
         if (e.NewValue is IEnumerable newItemsSource and not string)
@@ -735,8 +766,17 @@ public partial class NavigationView
 
         if (e.NewValue is INotifyCollectionChanged oc)
         {
-            oc.CollectionChanged += (s, e) =>
-                navigationView.OnMenuItemsSource_CollectionChanged(oc, navigationView.FooterMenuItems, e);
+            NotifyCollectionChangedEventHandler handler = (s, args) =>
+            {
+                if (!ReferenceEquals(navigationView.FooterMenuItemsSource, oc))
+                {
+                    return;
+                }
+
+                navigationView.OnMenuItemsSource_CollectionChanged(oc, navigationView.FooterMenuItems, args);
+            };
+            navigationView._footerMenuItemsSourceChangedHandler = handler;
+            oc.CollectionChanged += handler;
         }
     }
 
@@ -761,6 +801,15 @@ public partial class NavigationView
             return;
         }
 
+        if (
+            e.OldValue is INotifyCollectionChanged oldCollection
+            && navigationView._headerMenuItemsSourceChangedHandler is { } oldHandler
+        )
+        {
+            oldCollection.CollectionChanged -= oldHandler;
+            navigationView._headerMenuItemsSourceChangedHandler = null;
+        }
+
         navigationView.HeaderMenuItems.Clear();
 
         if (e.NewValue is IEnumerable newItemsSource and not string)
@@ -777,8 +826,17 @@ public partial class NavigationView
 
         if (e.NewValue is INotifyCollectionChanged oc)
         {
-            oc.CollectionChanged += (s, e) =>
-                navigationView.OnMenuItemsSource_CollectionChanged(oc, navigationView.HeaderMenuItems, e);
+            NotifyCollectionChangedEventHandler handler = (s, args) =>
+            {
+                if (!ReferenceEquals(navigationView.HeaderMenuItemsSource, oc))
+                {
+                    return;
+                }
+
+                navigationView.OnMenuItemsSource_CollectionChanged(oc, navigationView.HeaderMenuItems, args);
+            };
+            navigationView._headerMenuItemsSourceChangedHandler = handler;
+            oc.CollectionChanged += handler;
         }
     }
 

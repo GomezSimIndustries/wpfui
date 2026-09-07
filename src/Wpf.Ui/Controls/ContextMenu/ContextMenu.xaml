@@ -45,11 +45,15 @@
                             <Border.RenderTransform>
                                 <TranslateTransform />
                             </Border.RenderTransform>
-                            <StackPanel
-                                ClipToBounds="True"
-                                IsItemsHost="True"
-                                KeyboardNavigation.DirectionalNavigation="Cycle"
-                                Orientation="Vertical" />
+                            <controls:PassiveScrollViewer
+                                CanContentScroll="True"
+                                HorizontalScrollBarVisibility="Disabled"
+                                VerticalScrollBarVisibility="Auto">
+                                <StackPanel
+                                    IsItemsHost="True"
+                                    KeyboardNavigation.DirectionalNavigation="Cycle"
+                                    Orientation="Vertical" />
+                            </controls:PassiveScrollViewer>
                         </Border>
                     </controls:EffectThicknessDecorator>
                     <ControlTemplate.Triggers>

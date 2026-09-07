@@ -466,7 +466,7 @@
 
                             <!-- 8. Recent Colors -->
                             <StackPanel x:Name="RecentColorsSection"
-                                        Visibility="Collapsed"
+                                        Visibility="Visible"
                                         Margin="0,4,0,0">
                                 <TextBlock Text="Recent"
                                            FontSize="11"

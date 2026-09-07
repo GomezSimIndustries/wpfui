@@ -34,7 +34,7 @@ public class DropDownButton : Button
         nameof(IsDropDownOpen),
         typeof(bool),
         typeof(DropDownButton),
-        new PropertyMetadata(false)
+        new PropertyMetadata(false, OnIsDropDownOpenChanged)
     );
 
     /// <summary>
@@ -91,11 +91,43 @@ public class DropDownButton : Button
         SetCurrentValue(IsDropDownOpenProperty, true);
     }
 
-    protected virtual void OnIsDropDownOpenChanged(bool currentValue) { }
+    private static void OnIsDropDownOpenChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is DropDownButton dropDownButton)
+        {
+            dropDownButton.OnIsDropDownOpenChanged(e.NewValue is bool boolValue && boolValue);
+        }
+    }
+
+    /// <summary>This method is invoked when the <see cref="IsDropDownOpenProperty"/> changes.</summary>
+    /// <param name="currentValue">The new value of <see cref="IsDropDownOpenProperty"/>.</param>
+    protected virtual void OnIsDropDownOpenChanged(bool currentValue)
+    {
+        if (currentValue)
+        {
+            OpenFlyout();
+        }
+        else
+        {
+            CloseFlyout();
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnClick()
+    {
+        base.OnClick();
+        OpenFlyout();
+    }
 
     private void OnPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (_contextMenu is null)
+        OpenFlyout();
+    }
+
+    private void OpenFlyout()
+    {
+        if (_contextMenu is null || _contextMenu.IsOpen)
         {
             return;
         }
@@ -107,5 +139,15 @@ public class DropDownButton : Button
             System.Windows.Controls.Primitives.PlacementMode.Bottom
         );
         _contextMenu.SetCurrentValue(ContextMenu.IsOpenProperty, true);
+    }
+
+    private void CloseFlyout()
+    {
+        if (_contextMenu is null || !_contextMenu.IsOpen)
+        {
+            return;
+        }
+
+        _contextMenu.SetCurrentValue(ContextMenu.IsOpenProperty, false);
     }
 }

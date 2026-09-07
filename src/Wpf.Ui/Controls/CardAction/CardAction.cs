@@ -55,4 +55,6 @@ public class CardAction : System.Windows.Controls.Primitives.ButtonBase
     {
         return new CardActionAutomationPeer(this);
     }
+
+    internal void AutomationClick() => OnClick();
 }

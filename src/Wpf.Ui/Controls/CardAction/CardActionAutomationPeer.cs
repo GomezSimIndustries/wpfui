@@ -3,17 +3,14 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Automation;
 using System.Windows.Automation.Peers;
+using System.Windows.Automation.Provider;
+using System.Windows.Threading;
 
 namespace Wpf.Ui.Controls;
 
-internal class CardActionAutomationPeer : FrameworkElementAutomationPeer
+internal class CardActionAutomationPeer : FrameworkElementAutomationPeer, IInvokeProvider
 {
     private readonly CardAction _owner;
 
@@ -35,12 +32,29 @@ internal class CardActionAutomationPeer : FrameworkElementAutomationPeer
 
     public override object GetPattern(PatternInterface patternInterface)
     {
-        if (patternInterface == PatternInterface.ItemContainer)
+        if (patternInterface == PatternInterface.Invoke)
         {
             return this;
         }
 
         return base.GetPattern(patternInterface);
+    }
+
+    void IInvokeProvider.Invoke()
+    {
+        if (!IsEnabled())
+        {
+            throw new ElementNotEnabledException();
+        }
+
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.Input,
+            new DispatcherOperationCallback(_ =>
+            {
+                _owner.AutomationClick();
+                return null;
+            }),
+            null);
     }
 
     protected override AutomationPeer GetLabeledByCore()

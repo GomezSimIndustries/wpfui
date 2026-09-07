@@ -14,7 +14,7 @@ namespace Wpf.Ui;
 public interface ISnackbarService
 {
     /// <summary>
-    /// Gets or sets a time for which the <see cref="Snackbar"/> should be visible. (By default 2 seconds)
+    /// Gets or sets a time for which the <see cref="Snackbar"/> should be visible. (By default 5 seconds)
     /// </summary>
     TimeSpan DefaultTimeOut { get; set; }
 

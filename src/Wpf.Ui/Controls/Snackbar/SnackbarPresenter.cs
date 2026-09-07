@@ -8,6 +8,10 @@ namespace Wpf.Ui.Controls;
 
 public class SnackbarPresenter : System.Windows.Controls.ContentPresenter
 {
+    private readonly TimeProvider _timeProvider;
+
+    private long _presentationGeneration;
+
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "WpfAnalyzers.DependencyProperty",
         "WPF0012:CLR property type should match registered type",
@@ -20,7 +24,16 @@ public class SnackbarPresenter : System.Windows.Controls.ContentPresenter
     }
 
     public SnackbarPresenter()
+        : this(TimeProvider.System)
     {
+    }
+
+    /// <summary>Initializes a new instance of the <see cref="SnackbarPresenter"/> class using the given time source for its display and fade delays.</summary>
+    /// <param name="timeProvider">The source of the display timeout and fade delays.</param>
+    public SnackbarPresenter(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+
         Unloaded += static (sender, _) =>
         {
             var self = (SnackbarPresenter)sender;
@@ -34,6 +47,8 @@ public class SnackbarPresenter : System.Windows.Controls.ContentPresenter
 
     protected virtual void OnUnloaded()
     {
+        Queue.Clear();
+
         if (CancellationTokenSource.IsCancellationRequested)
         {
             return;
@@ -51,6 +66,7 @@ public class SnackbarPresenter : System.Windows.Controls.ContentPresenter
         }
 
         CancellationTokenSource.Cancel();
+        _presentationGeneration++;
         ImmediatelyHidSnackbar(Content);
     }
 
@@ -97,8 +113,13 @@ public class SnackbarPresenter : System.Windows.Controls.ContentPresenter
         }
 
         CancellationTokenSource.Cancel();
-        await HidSnackbar(Content);
-        ResetCancellationTokenSource();
+        long generation = ++_presentationGeneration;
+        await HidSnackbar(Content, generation);
+
+        if (generation == _presentationGeneration)
+        {
+            ResetCancellationTokenSource();
+        }
     }
 
     private async Task ShowQueuedSnackbarsAsync()
@@ -118,20 +139,22 @@ public class SnackbarPresenter : System.Windows.Controls.ContentPresenter
     )]
     private async Task ShowSnackbar(Snackbar snackbar)
     {
+        long generation = ++_presentationGeneration;
+
         Content = snackbar;
 
         snackbar.SetCurrentValue(Snackbar.IsShownProperty, true);
 
         try
         {
-            await Task.Delay(snackbar.Timeout, CancellationTokenSource.Token);
+            await Task.Delay(snackbar.Timeout, _timeProvider, CancellationTokenSource.Token);
         }
         catch
         {
             return;
         }
 
-        await HidSnackbar(snackbar);
+        await HidSnackbar(snackbar, generation);
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -139,13 +162,16 @@ public class SnackbarPresenter : System.Windows.Controls.ContentPresenter
         "WPF0041:Set mutable dependency properties using SetCurrentValue",
         Justification = "SetCurrentValue(ContentProperty, ...) will not work"
     )]
-    private async Task HidSnackbar(Snackbar snackbar)
+    private async Task HidSnackbar(Snackbar snackbar, long generation)
     {
         snackbar.SetCurrentValue(Snackbar.IsShownProperty, false);
 
-        await Task.Delay(300);
+        await Task.Delay(TimeSpan.FromMilliseconds(300), _timeProvider);
 
-        Content = null;
+        if (generation == _presentationGeneration)
+        {
+            Content = null;
+        }
     }
 
     ~SnackbarPresenter()

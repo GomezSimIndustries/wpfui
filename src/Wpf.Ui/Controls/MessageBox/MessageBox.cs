@@ -307,23 +307,32 @@ public class MessageBox : Window
         CancellationToken cancellationToken = default
     )
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         Tcs = new TaskCompletionSource<MessageBoxResult>();
         CancellationTokenRegistration tokenRegistration = cancellationToken.Register(
-            o => Tcs.TrySetCanceled((CancellationToken)o!),
-            cancellationToken
+            static state =>
+            {
+                (MessageBox self, CancellationToken token) = ((MessageBox, CancellationToken))state!;
+                self.CloseForCancellation(token);
+            },
+            (this, cancellationToken)
         );
 
         try
         {
-            RemoveTitleBarAndApplyMica();
+            if (!Tcs.Task.IsCompleted)
+            {
+                RemoveTitleBarAndApplyMica();
 
-            if (showAsDialog)
-            {
-                base.ShowDialog();
-            }
-            else
-            {
-                base.Show();
+                if (showAsDialog)
+                {
+                    base.ShowDialog();
+                }
+                else
+                {
+                    base.Show();
+                }
             }
 
             return await Tcs.Task;
@@ -336,6 +345,31 @@ public class MessageBox : Window
             tokenRegistration.Dispose();
 #endif
         }
+    }
+
+    /// <summary>Settles the dialog result as canceled and closes the window on its owning dispatcher.</summary>
+    /// <param name="cancellationToken">The token whose cancellation is being applied.</param>
+    private void CloseForCancellation(CancellationToken cancellationToken)
+    {
+        if (CheckAccess())
+        {
+            CloseForCancellationCore(cancellationToken);
+        }
+        else
+        {
+            _ = Dispatcher.BeginInvoke(() => CloseForCancellationCore(cancellationToken));
+        }
+    }
+
+    private void CloseForCancellationCore(CancellationToken cancellationToken)
+    {
+        if (Tcs is null || Tcs.Task.IsCompleted)
+        {
+            return;
+        }
+
+        _ = Tcs.TrySetCanceled(cancellationToken);
+        base.Close();
     }
 
     /// <summary>
@@ -410,6 +444,17 @@ public class MessageBox : Window
         {
             return;
         }
+
+        _ = Tcs?.TrySetResult(MessageBoxResult.None);
+    }
+
+    /// <summary>
+    /// Occurs after the window has closed.
+    /// </summary>
+    /// <remarks>Owner-driven closes do not raise <see cref="Window.Closing"/>; this settles the result as well.</remarks>
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
 
         _ = Tcs?.TrySetResult(MessageBoxResult.None);
     }

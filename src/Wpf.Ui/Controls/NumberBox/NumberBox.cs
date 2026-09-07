@@ -52,7 +52,7 @@ public partial class NumberBox : TextBox
         nameof(MaxDecimalPlaces),
         typeof(int),
         typeof(NumberBox),
-        new PropertyMetadata(6)
+        new PropertyMetadata(6, OnMaxDecimalPlacesChanged)
     );
 
     /// <summary>Identifies the <see cref="SmallChange"/> dependency property.</summary>
@@ -76,7 +76,7 @@ public partial class NumberBox : TextBox
         nameof(Maximum),
         typeof(double),
         typeof(NumberBox),
-        new PropertyMetadata(double.MaxValue)
+        new PropertyMetadata(double.MaxValue, OnRangeChanged)
     );
 
     /// <summary>Identifies the <see cref="Minimum"/> dependency property.</summary>
@@ -84,7 +84,7 @@ public partial class NumberBox : TextBox
         nameof(Minimum),
         typeof(double),
         typeof(NumberBox),
-        new PropertyMetadata(double.MinValue)
+        new PropertyMetadata(double.MinValue, OnRangeChanged)
     );
 
     /// <summary>Identifies the <see cref="AcceptsExpression"/> dependency property.</summary>
@@ -336,7 +336,7 @@ public partial class NumberBox : TextBox
         double? parsed = numberParser?.ParseDouble(text);
         if (parsed is not null && !Equals(Value, parsed))
         {
-            double clamped = Math.Clamp(parsed.Value, Minimum, Maximum);
+            double clamped = ClampToRange(parsed.Value);
             SetCurrentValue(ValueProperty, clamped);
         }
     }
@@ -382,6 +382,15 @@ public partial class NumberBox : TextBox
     /// </summary>
     protected virtual void OnValueChanged(DependencyObject d, double? oldValue)
     {
+        CommitValue(oldValue);
+    }
+
+    /// <summary>
+    /// Clamps the current <see cref="Value"/> into range, publishes at most one <see cref="ValueChanged"/>
+    /// event carrying the final clamped value, and refreshes <see cref="System.Windows.Controls.TextBox.Text"/>.
+    /// </summary>
+    private void CommitValue(double? previousValue)
+    {
         if (_valueUpdating)
         {
             return;
@@ -389,26 +398,52 @@ public partial class NumberBox : TextBox
 
         _valueUpdating = true;
 
-        var newValue = Value;
+        double? requestedValue = Value;
+        double? finalValue = requestedValue is double requested ? ClampToRange(requested) : null;
 
-        if (newValue > Maximum)
+        if (!Equals(finalValue, requestedValue))
         {
-            SetCurrentValue(ValueProperty, Maximum);
+            SetCurrentValue(ValueProperty, finalValue);
         }
 
-        if (newValue < Minimum)
+        if (!Equals(finalValue, previousValue))
         {
-            SetCurrentValue(ValueProperty, Minimum);
-        }
-
-        if (!Equals(newValue, oldValue))
-        {
-            RaiseEvent(new NumberBoxValueChangedEventArgs(oldValue, newValue, this));
+            RaiseEvent(new NumberBoxValueChangedEventArgs(previousValue, finalValue, this));
         }
 
         UpdateTextToValue();
 
         _valueUpdating = false;
+    }
+
+    /// <summary>
+    /// Clamps <paramref name="value"/> into the effective <see cref="Minimum"/>/<see cref="Maximum"/> range,
+    /// treating an inverted range as its swapped bounds and a non-finite bound as no bound on that side.
+    /// </summary>
+    private double ClampToRange(double value)
+    {
+        if (double.IsNaN(value))
+        {
+            return value;
+        }
+
+        double minimum = double.IsNaN(Minimum) ? double.NegativeInfinity : Minimum;
+        double maximum = double.IsNaN(Maximum) ? double.PositiveInfinity : Maximum;
+
+        if (minimum > maximum)
+        {
+            (minimum, maximum) = (maximum, minimum);
+        }
+
+        return Math.Clamp(value, minimum, maximum);
+    }
+
+    /// <summary>
+    /// Gets <see cref="MaxDecimalPlaces"/> clamped to the range <see cref="Math.Round(double, int)"/> accepts.
+    /// </summary>
+    private int ClampDecimalPlaces()
+    {
+        return Math.Clamp(MaxDecimalPlaces, 0, 15);
     }
 
     /// <summary>
@@ -450,7 +485,7 @@ public partial class NumberBox : TextBox
 
         if (Value is not null && NumberFormatter is not null)
         {
-            newText = NumberFormatter.FormatDouble(Math.Round((double)Value, MaxDecimalPlaces));
+            newText = NumberFormatter.FormatDouble(Math.Round((double)Value, ClampDecimalPlaces()));
         }
 
         SetCurrentValue(TextProperty, newText);
@@ -482,15 +517,7 @@ public partial class NumberBox : TextBox
             return;
         }
 
-        if (value > Maximum)
-        {
-            value = Maximum;
-        }
-
-        if (value < Minimum)
-        {
-            value = Minimum;
-        }
+        value = ClampToRange(value.Value);
 
         SetCurrentValue(ValueProperty, value);
     }
@@ -498,6 +525,29 @@ public partial class NumberBox : TextBox
     private void MoveCaretToTextEnd()
     {
         CaretIndex = Text.Length;
+    }
+
+    /// <summary>
+    /// Re-rounds the current <see cref="Value"/> to <see cref="MaxDecimalPlaces"/> and publishes the
+    /// change through the same clamp/event path as any other value change.
+    /// </summary>
+    private void RoundValueToDecimalPlaces()
+    {
+        if (_valueUpdating || Value is not double value)
+        {
+            return;
+        }
+
+        double rounded = Math.Round(value, ClampDecimalPlaces());
+
+        if (!Equals(rounded, value))
+        {
+            SetCurrentValue(ValueProperty, rounded);
+        }
+        else
+        {
+            UpdateTextToValue();
+        }
     }
 
     private static INumberFormatter GetRegionalSettingsAwareDecimalFormatter()
@@ -510,6 +560,22 @@ public partial class NumberBox : TextBox
         if (d is NumberBox numberBox)
         {
             numberBox.OnValueChanged(d, (double?)e.OldValue);
+        }
+    }
+
+    private static void OnRangeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is NumberBox numberBox)
+        {
+            numberBox.CommitValue(numberBox.Value);
+        }
+    }
+
+    private static void OnMaxDecimalPlacesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is NumberBox numberBox)
+        {
+            numberBox.RoundValueToDecimalPlaces();
         }
     }
 

@@ -3,8 +3,8 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using System.Runtime.CompilerServices;
 using Wpf.Ui.Controls;
-using Wpf.Ui.Interop;
 
 namespace Wpf.Ui.Appearance;
 
@@ -22,6 +22,10 @@ namespace Wpf.Ui.Appearance;
 /// </example>
 public static class WindowBackgroundManager
 {
+    internal static IWindowBackgroundNativeCalls NativeCalls { get; set; } = new Win32WindowBackgroundNativeCalls();
+
+    private static readonly ConditionalWeakTable<Window, RoutedEventHandler> PendingThemeHandlers = new();
+
     /// <summary>
     /// Tries to apply dark theme to <see cref="Window"/>.
     /// </summary>
@@ -34,10 +38,12 @@ public static class WindowBackgroundManager
 
         if (window.IsLoaded)
         {
-            _ = UnsafeNativeMethods.ApplyWindowDarkMode(window);
+            _ = NativeCalls.ApplyWindowDarkMode(window);
+
+            return;
         }
 
-        window.Loaded += (sender, _) => UnsafeNativeMethods.ApplyWindowDarkMode(sender as Window);
+        SetPendingThemeState(window, applyDark: true);
     }
 
     /// <summary>
@@ -52,10 +58,44 @@ public static class WindowBackgroundManager
 
         if (window.IsLoaded)
         {
-            _ = UnsafeNativeMethods.RemoveWindowDarkMode(window);
+            _ = NativeCalls.RemoveWindowDarkMode(window);
+
+            return;
         }
 
-        window.Loaded += (sender, _) => UnsafeNativeMethods.RemoveWindowDarkMode(sender as Window);
+        SetPendingThemeState(window, applyDark: false);
+    }
+
+    /// <summary>
+    /// Replaces any pending theme request for the window with a single one-shot Loaded subscription.
+    /// </summary>
+    private static void SetPendingThemeState(Window window, bool applyDark)
+    {
+        if (PendingThemeHandlers.TryGetValue(window, out RoutedEventHandler? existingHandler))
+        {
+            window.Loaded -= existingHandler;
+            PendingThemeHandlers.Remove(window);
+        }
+
+        RoutedEventHandler handler = null!;
+
+        handler = (sender, _1) =>
+        {
+            window.Loaded -= handler;
+            PendingThemeHandlers.Remove(window);
+
+            if (applyDark)
+            {
+                _ = NativeCalls.ApplyWindowDarkMode(sender as Window);
+            }
+            else
+            {
+                _ = NativeCalls.RemoveWindowDarkMode(sender as Window);
+            }
+        };
+
+        PendingThemeHandlers.Add(window, handler);
+        window.Loaded += handler;
     }
 
     [Obsolete("Use UpdateBackground(Window, ApplicationTheme, WindowBackdropType) instead.")]
@@ -83,7 +123,7 @@ public static class WindowBackgroundManager
             return;
         }
 
-        _ = WindowBackdrop.RemoveBackdrop(window);
+        _ = NativeCalls.RemoveBackdrop(window);
 
         if (applicationTheme == ApplicationTheme.HighContrast)
         {
@@ -99,7 +139,7 @@ public static class WindowBackgroundManager
             _ = WindowBackdrop.RemoveBackground(window);
         }
 
-        _ = WindowBackdrop.ApplyBackdrop(window, backdrop);
+        _ = NativeCalls.ApplyBackdrop(window, backdrop);
 
         if (applicationTheme is ApplicationTheme.Dark)
         {
@@ -110,13 +150,13 @@ public static class WindowBackgroundManager
             RemoveDarkThemeFromWindow(window);
         }
 
-        _ = WindowBackdrop.RemoveTitlebarBackground(window);
+        _ = NativeCalls.RemoveTitlebarBackground(window);
 
         foreach (object? subWindow in window.OwnedWindows)
         {
             if (subWindow is Window windowSubWindow)
             {
-                _ = WindowBackdrop.ApplyBackdrop(windowSubWindow, backdrop);
+                _ = NativeCalls.ApplyBackdrop(windowSubWindow, backdrop);
 
                 if (applicationTheme is ApplicationTheme.Dark)
                 {
@@ -127,7 +167,7 @@ public static class WindowBackgroundManager
                     RemoveDarkThemeFromWindow(windowSubWindow);
                 }
 
-                _ = WindowBackdrop.RemoveTitlebarBackground(window);
+                _ = NativeCalls.RemoveTitlebarBackground(windowSubWindow);
             }
         }
     }

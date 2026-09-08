@@ -673,6 +673,8 @@ public partial class NavigationView
                 PageToNavigationItemDictionary.Clear();
                 break;
         }
+
+        UpdateAutoSuggestBoxSuggestions();
     }
 
     private static void OnMenuItemsSourceChanged(DependencyObject? d, DependencyPropertyChangedEventArgs e)

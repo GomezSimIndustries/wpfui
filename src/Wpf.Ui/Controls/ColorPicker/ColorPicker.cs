@@ -294,7 +294,8 @@ public class ColorPicker : Control
         set => SetValue(IsColorPaletteVisibleProperty, value);
     }
 
-    /// <summary>Gets or sets the shape of the color spectrum.</summary>
+    /// <summary>Gets or sets a value that has no effect; the color spectrum always renders as a rectangle.</summary>
+    [Obsolete("ColorSpectrumShape has no effect. The color spectrum always renders as a rectangle.")]
     [Bindable(true)]
     public ColorSpectrumShape ColorSpectrumShape
     {
@@ -886,6 +887,10 @@ public class ColorPicker : Control
             if (_valueSlider != null)
             {
                 _valueSlider.Value = _value;
+
+                // Reads the slider's own Minimum/Maximum-coerced value back into the HSV state.
+                _value = _valueSlider.Value;
+
                 // Update slider gradient: left = black, right = full saturation color at hue
                 var (fr, fg, fb) = ColorExtensions.FromHsvToRgb((float)_hue, (float)_saturation, 100f);
                 _valueSlider.LeftColor = Colors.Black;

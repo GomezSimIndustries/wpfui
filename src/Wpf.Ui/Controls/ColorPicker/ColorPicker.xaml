@@ -167,7 +167,8 @@
                                            Width="48" />
                                 <controls:ColorSlider x:Name="PART_ValueSlider"
                                                       Grid.Column="1"
-                                                      Minimum="0" Maximum="100" />
+                                                      Minimum="{Binding MinValue, RelativeSource={RelativeSource TemplatedParent}}"
+                                                      Maximum="{Binding MaxValue, RelativeSource={RelativeSource TemplatedParent}}" />
                             </Grid>
 
                             <!-- 3. Alpha Slider (visible when IsAlphaEnabled) -->
@@ -409,7 +410,8 @@
                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                    Margin="0,0,0,2" />
                                         <controls:NumberBox x:Name="PART_ValueInput"
-                                                            Minimum="0" Maximum="100"
+                                                            Minimum="{Binding MinValue, RelativeSource={RelativeSource TemplatedParent}}"
+                                                            Maximum="{Binding MaxValue, RelativeSource={RelativeSource TemplatedParent}}"
                                                             MaxDecimalPlaces="0"
                                                             SmallChange="1" LargeChange="10"
                                                             SpinButtonPlacementMode="Hidden"

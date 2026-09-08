@@ -157,15 +157,23 @@ public partial class NavigationView
             return false;
         }
 
-        var itemId = _forwardStack.Pop();
+        var itemId = _forwardStack.Peek();
 
         if (!PageIdOrTargetTagNavigationViewsDictionary.TryGetValue(itemId, out var navigationViewItem))
         {
+            // Discards the stale forward-stack entry for a route that no longer exists.
+            _forwardStack.Pop();
             return false;
         }
 
         // Navigate without clearing forward stack (isForwardNavigated flag)
-        return NavigateInternal(navigationViewItem, null, false, false, isForwardNavigated: true);
+        if (!NavigateInternal(navigationViewItem, null, false, false, isForwardNavigated: true))
+        {
+            return false;
+        }
+
+        _forwardStack.Pop();
+        return true;
     }
 
     /// <inheritdoc />
@@ -176,14 +184,24 @@ public partial class NavigationView
             return false;
         }
 
-        // Push current page to forward stack so we can navigate back to it
         var currentId = Journal[^1];
-        _forwardStack.Push(currentId);
-
         var itemId = Journal[^2];
 
         OnBackRequested();
-        return NavigateInternal(PageIdOrTargetTagNavigationViewsDictionary[itemId], null, false, true);
+
+        if (!PageIdOrTargetTagNavigationViewsDictionary.TryGetValue(itemId, out var navigationViewItem))
+        {
+            return false;
+        }
+
+        if (!NavigateInternal(navigationViewItem, null, false, true))
+        {
+            return false;
+        }
+
+        // Push the current page to the forward stack.
+        _forwardStack.Push(currentId);
+        return true;
     }
 
     /// <inheritdoc />

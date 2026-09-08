@@ -20,11 +20,13 @@ namespace Wpf.Ui.Controls;
 public class VirtualizingItemsControl : ItemsControl
 {
     /// <summary>Identifies the <see cref="CacheLengthUnit"/> dependency property.</summary>
-    public static readonly DependencyProperty CacheLengthUnitProperty = DependencyProperty.Register(
-        nameof(CacheLengthUnit),
-        typeof(VirtualizationCacheLengthUnit),
+    public static readonly DependencyProperty CacheLengthUnitProperty = VirtualizingPanel.CacheLengthUnitProperty.AddOwner(
         typeof(VirtualizingItemsControl),
-        new FrameworkPropertyMetadata(VirtualizationCacheLengthUnit.Page)
+        new FrameworkPropertyMetadata(
+            VirtualizationCacheLengthUnit.Page,
+            FrameworkPropertyMetadataOptions.None,
+            null,
+            CoerceCacheLengthUnit)
     );
 
     /// <summary>
@@ -32,12 +34,8 @@ public class VirtualizingItemsControl : ItemsControl
     /// </summary>
     public VirtualizationCacheLengthUnit CacheLengthUnit
     {
-        get => VirtualizingPanel.GetCacheLengthUnit(this);
-        set
-        {
-            SetValue(CacheLengthUnitProperty, value);
-            VirtualizingPanel.SetCacheLengthUnit(this, value);
-        }
+        get => (VirtualizationCacheLengthUnit)GetValue(CacheLengthUnitProperty);
+        set => SetValue(CacheLengthUnitProperty, value);
     }
 
     /// <summary>
@@ -45,8 +43,9 @@ public class VirtualizingItemsControl : ItemsControl
     /// </summary>
     public VirtualizingItemsControl()
     {
-        VirtualizingPanel.SetCacheLengthUnit(this, CacheLengthUnit);
         VirtualizingPanel.SetCacheLength(this, new VirtualizationCacheLength(1));
         VirtualizingPanel.SetIsVirtualizingWhenGrouping(this, true);
     }
+
+    private static object CoerceCacheLengthUnit(DependencyObject d, object baseValue) => baseValue;
 }

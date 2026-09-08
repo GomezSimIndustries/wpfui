@@ -7,8 +7,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
-#pragma warning disable CA1001 // Types that own disposable fields should be disposable
-
 namespace Wpf.Ui.Tray;
 
 /// <summary>
@@ -17,6 +15,8 @@ namespace Wpf.Ui.Tray;
 public class NotifyIconService : INotifyIconService
 {
     private readonly Internal.InternalNotifyIconManager internalNotifyIconManager;
+
+    private bool _disposed;
 
     public Window ParentWindow { get; internal set; } = null!;
 
@@ -49,8 +49,18 @@ public class NotifyIconService : INotifyIconService
         RegisterHandlers();
     }
 
+    /// <summary>
+    /// Finalizes an instance of the <see cref="NotifyIconService"/> class.
+    /// </summary>
+    ~NotifyIconService() => Dispose(false);
+
     public bool Register()
     {
+        if (_disposed)
+        {
+            return false;
+        }
+
         if (ParentWindow is not null)
         {
             return internalNotifyIconManager.Register(ParentWindow);
@@ -67,13 +77,25 @@ public class NotifyIconService : INotifyIconService
     /// <inheritdoc />
     public void SetParentWindow(Window parentWindow)
     {
-        if (ParentWindow is not null)
+        if (_disposed)
         {
-            ParentWindow.Closing -= OnParentWindowClosing;
+            return;
         }
 
+        DetachParentWindow();
+
         ParentWindow = parentWindow;
-        ParentWindow.Closing += OnParentWindowClosing;
+        ParentWindow.Closed += OnParentWindowClosed;
+    }
+
+    /// <summary>
+    /// Releases the tray icon, detaches it from its parent window, and unregisters the mouse handlers.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -106,9 +128,41 @@ public class NotifyIconService : INotifyIconService
     /// </summary>
     protected virtual void OnMiddleDoubleClick() { }
 
-    private void OnParentWindowClosing(object? sender, CancelEventArgs e)
+    /// <summary>
+    /// Releases the tray icon, the parent window subscription and the mouse handlers.
+    /// </summary>
+    /// <param name="disposing">If disposing equals <see langword="true"/>, dispose all managed and unmanaged resources.</param>
+    protected virtual void Dispose(bool disposing)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        if (!disposing)
+        {
+            return;
+        }
+
+        DetachParentWindow();
+        UnregisterHandlers();
+
         internalNotifyIconManager.Dispose();
+    }
+
+    private void OnParentWindowClosed(object? sender, EventArgs e)
+    {
+        Dispose();
+    }
+
+    private void DetachParentWindow()
+    {
+        if (ParentWindow is not null)
+        {
+            ParentWindow.Closed -= OnParentWindowClosed;
+        }
     }
 
     private void RegisterHandlers()
@@ -120,6 +174,14 @@ public class NotifyIconService : INotifyIconService
         internalNotifyIconManager.MiddleClick += OnMiddleClick;
         internalNotifyIconManager.MiddleDoubleClick += OnMiddleDoubleClick;
     }
-}
 
-#pragma warning restore CA1001 // Types that own disposable fields should be disposable
+    private void UnregisterHandlers()
+    {
+        internalNotifyIconManager.LeftClick -= OnLeftClick;
+        internalNotifyIconManager.LeftDoubleClick -= OnLeftDoubleClick;
+        internalNotifyIconManager.RightClick -= OnRightClick;
+        internalNotifyIconManager.RightDoubleClick -= OnRightDoubleClick;
+        internalNotifyIconManager.MiddleClick -= OnMiddleClick;
+        internalNotifyIconManager.MiddleDoubleClick -= OnMiddleDoubleClick;
+    }
+}

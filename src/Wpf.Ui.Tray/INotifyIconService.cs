@@ -12,7 +12,7 @@ namespace Wpf.Ui.Tray;
 /// <summary>
 /// Represents a contract with a service that provides methods for displaying the icon and menu in the tray area.
 /// </summary>
-public interface INotifyIconService
+public interface INotifyIconService : IDisposable
 {
     /// <summary>
     /// Gets the notify icon id.
@@ -52,5 +52,6 @@ public interface INotifyIconService
     /// <summary>
     /// Sets parent window of the tray icon.
     /// </summary>
+    /// <remarks>Replacing the parent stops tracking the previous window's close.</remarks>
     public void SetParentWindow(Window window);
 }

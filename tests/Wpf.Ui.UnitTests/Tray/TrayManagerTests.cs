@@ -208,4 +208,81 @@ public class TrayManagerTests
         _ = TrayManager.Unregister(iconB);
         _ = TrayManager.Unregister(iconC);
     }
+
+    [Fact]
+    public void RegisterCore_Reregistration_DestroysThePreviousOwnedHicon()
+    {
+        var gateway = new FakeShellNotifyIconGateway();
+        var factory = new FakeTrayHookWindowFactory();
+        var iconHandleGateway = new FakeNativeIconHandleGateway();
+        using var fixture = new TrayManagerFixture(gateway, factory, iconHandleGateway);
+        var icon = new FakeNotifyIcon();
+
+        Assert.True(TrayManager.RegisterCore(icon, hasParentSource: true, parentHandle: new IntPtr(1)));
+        IntPtr firstHicon = icon.ShellIconData.hIcon;
+        Assert.NotEqual(IntPtr.Zero, firstHicon);
+
+        Assert.True(TrayManager.RegisterCore(icon, hasParentSource: true, parentHandle: new IntPtr(1)));
+        IntPtr secondHicon = icon.ShellIconData.hIcon;
+
+        Assert.NotEqual(IntPtr.Zero, secondHicon);
+        Assert.NotEqual(firstHicon, secondHicon);
+        Assert.Contains(firstHicon, iconHandleGateway.DestroyedHandles);
+        Assert.DoesNotContain(secondHicon, iconHandleGateway.DestroyedHandles);
+
+        _ = TrayManager.Unregister(icon);
+    }
+
+    [Fact]
+    public void Unregister_DestroysTheOwnedHicon_AndClearsIt()
+    {
+        var gateway = new FakeShellNotifyIconGateway();
+        var factory = new FakeTrayHookWindowFactory();
+        var iconHandleGateway = new FakeNativeIconHandleGateway();
+        using var fixture = new TrayManagerFixture(gateway, factory, iconHandleGateway);
+        var icon = new FakeNotifyIcon();
+        Assert.True(TrayManager.RegisterCore(icon, hasParentSource: true, parentHandle: new IntPtr(1)));
+        IntPtr ownedHicon = icon.ShellIconData.hIcon;
+        Assert.NotEqual(IntPtr.Zero, ownedHicon);
+
+        Assert.True(TrayManager.Unregister(icon));
+
+        Assert.Contains(ownedHicon, iconHandleGateway.DestroyedHandles);
+        Assert.Equal(IntPtr.Zero, icon.ShellIconData.hIcon);
+    }
+
+    [Fact]
+    public void RegisterCore_ShellRejectsAdd_DestroysTheHiconItCreated()
+    {
+        var gateway = new FakeShellNotifyIconGateway(false);
+        var factory = new FakeTrayHookWindowFactory();
+        var iconHandleGateway = new FakeNativeIconHandleGateway();
+        using var fixture = new TrayManagerFixture(gateway, factory, iconHandleGateway);
+        var icon = new FakeNotifyIcon();
+
+        bool result = TrayManager.RegisterCore(icon, hasParentSource: true, parentHandle: new IntPtr(1));
+
+        Assert.False(result);
+        Assert.Single(iconHandleGateway.DestroyedHandles);
+        Assert.NotEqual(IntPtr.Zero, iconHandleGateway.DestroyedHandles[0]);
+    }
+
+    [Fact]
+    public void RepeatedRegisterUnregisterCycles_NeverDestroyTheSameHiconTwice()
+    {
+        var gateway = new FakeShellNotifyIconGateway();
+        var factory = new FakeTrayHookWindowFactory();
+        var iconHandleGateway = new FakeNativeIconHandleGateway();
+        using var fixture = new TrayManagerFixture(gateway, factory, iconHandleGateway);
+        var icon = new FakeNotifyIcon();
+
+        for (int i = 0; i < 5; i++)
+        {
+            Assert.True(TrayManager.RegisterCore(icon, hasParentSource: true, parentHandle: new IntPtr(1)));
+            Assert.True(TrayManager.Unregister(icon));
+        }
+
+        Assert.Equal(0, iconHandleGateway.DuplicateDestroyCount);
+        Assert.Equal(5, iconHandleGateway.DestroyedHandles.Count);
+    }
 }

@@ -1298,6 +1298,14 @@ internal static class User32
     public static extern bool DestroyIcon([In] IntPtr handle);
 
     /// <summary>
+    /// Creates a new icon that is a copy of an existing icon, owned independently of the source handle.
+    /// </summary>
+    /// <param name="hIcon">A handle to the icon to be copied.</param>
+    /// <returns>If the function succeeds, the return value is a handle to the duplicate icon.</returns>
+    [DllImport(Libraries.User32, SetLastError = true)]
+    public static extern IntPtr CopyIcon([In] IntPtr hIcon);
+
+    /// <summary>
     /// Determines whether the specified window handle identifies an existing window.
     /// </summary>
     /// <param name="hWnd">A handle to the window to be tested.</param>

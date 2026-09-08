@@ -20,6 +20,7 @@ internal static class Hicon
     /// <summary>
     /// Tries to take the icon pointer assigned to the application.
     /// </summary>
+    /// <returns>A handle the caller owns and must destroy with <see cref="Interop.User32.DestroyIcon"/>, or <see cref="IntPtr.Zero"/>.</returns>
     public static IntPtr FromApp()
     {
         try
@@ -31,16 +32,14 @@ internal static class Hicon
                 return IntPtr.Zero;
             }
 
-            var appIconsExtractIcon = Icon.ExtractAssociatedIcon(processName);
+            using var appIcon = Icon.ExtractAssociatedIcon(processName);
 
-            if (appIconsExtractIcon == null)
+            if (appIcon == null)
             {
                 return IntPtr.Zero;
             }
 
-            /*appIconsExtractIcon.ToBitmap();*/
-
-            return appIconsExtractIcon.Handle;
+            return Interop.User32.CopyIcon(appIcon.Handle);
         }
         catch (Exception e)
         {
@@ -60,6 +59,7 @@ internal static class Hicon
     /// Tries to allocate an icon to memory and fetch a pointer to it.
     /// </summary>
     /// <param name="source">Image source.</param>
+    /// <returns>A handle the caller owns and must destroy with <see cref="Interop.User32.DestroyIcon"/>, or <see cref="IntPtr.Zero"/>.</returns>
     public static IntPtr FromSource(ImageSource source)
     {
         IntPtr hIcon = IntPtr.Zero;
@@ -80,37 +80,38 @@ internal static class Hicon
             bitmapSource = bitmapFrame!.Decoder!.Frames![0];
         }
 
-        var stride = bitmapSource!.PixelWidth * ((bitmapSource.Format.BitsPerPixel + 7) / 8);
+        // Converts to 32 bits per pixel with the red, green, and blue components premultiplied by alpha.
+        if (bitmapSource!.Format != PixelFormats.Pbgra32)
+        {
+            bitmapSource = new FormatConvertedBitmap(bitmapSource, PixelFormats.Pbgra32, null, 0);
+        }
+
+        var stride = bitmapSource.PixelWidth * ((bitmapSource.Format.BitsPerPixel + 7) / 8);
         var pixels = new byte[bitmapSource.PixelHeight * stride];
 
         bitmapSource.CopyPixels(pixels, stride, 0);
 
-        // Allocate pixels to unmanaged memory
         var gcHandle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+        Bitmap? bitmap = null;
 
-        if (!gcHandle.IsAllocated)
+        try
         {
-            Debug.WriteLine(
-                $"ERROR | Unable to allocate hIcon, allocation failed.",
-                "Wpf.Ui.Hicon"
+            // Format32bppPArgb matches the Pbgra32 conversion above.
+            bitmap = new Bitmap(
+                bitmapSource.PixelWidth,
+                bitmapSource.PixelHeight,
+                stride,
+                System.Drawing.Imaging.PixelFormat.Format32bppPArgb,
+                gcHandle.AddrOfPinnedObject()
             );
-            return hIcon;
+
+            hIcon = bitmap.GetHicon();
         }
-
-        // Specifies that the format is 32 bits per pixel; 8 bits each are used for the alpha, red, green, and blue components.
-        // The red, green, and blue components are premultiplied, according to the alpha component.
-        var bitmap = new Bitmap(
-            bitmapSource.PixelWidth,
-            bitmapSource.PixelHeight,
-            stride,
-            System.Drawing.Imaging.PixelFormat.Format32bppPArgb,
-            gcHandle.AddrOfPinnedObject()
-        );
-
-        hIcon = bitmap.GetHicon();
-
-        // Release handle.
-        gcHandle.Free();
+        finally
+        {
+            bitmap?.Dispose();
+            gcHandle.Free();
+        }
 
         return hIcon;
     }

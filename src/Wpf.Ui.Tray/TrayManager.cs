@@ -38,6 +38,11 @@ internal static class TrayManager
     /// </summary>
     internal static ITrayHookWindowFactory HookWindowFactory { get; set; } = TrayHookWindowFactory.Instance;
 
+    /// <summary>
+    /// Gets or sets the gateway used to destroy owned native icon handles.
+    /// </summary>
+    internal static INativeIconHandleGateway IconHandleGateway { get; set; } = User32NativeIconHandleGateway.Instance;
+
     public static bool Register(INotifyIcon notifyIcon)
     {
         if (notifyIcon is null)
@@ -126,6 +131,8 @@ internal static class TrayManager
 
         if (!added)
         {
+            ReleaseOwnedHicon(notifyIcon);
+
             hookWindow.RemoveHook(notifyIcon.WndProc);
             hookWindow.Dispose();
 
@@ -184,6 +191,8 @@ internal static class TrayManager
 
         TrayData.NotifyIcons.Remove(notifyIcon);
 
+        ReleaseOwnedHicon(notifyIcon);
+
         // Dispose the HookWindow now that the tray icon is unregistered.
         // Since the TrayHandler is a standalone top-level window (not parented),
         // it must be explicitly disposed to avoid orphaned HwndSource objects.
@@ -225,10 +234,31 @@ internal static class TrayManager
             hIcon = Hicon.FromApp();
         }
 
+        ReleaseOwnedHicon(notifyIcon);
+
         if (hIcon != IntPtr.Zero)
         {
             notifyIcon.ShellIconData.hIcon = hIcon;
             notifyIcon.ShellIconData.uFlags |= Interop.Shell32.NIF.ICON;
         }
+    }
+
+    /// <summary>
+    /// Destroys the icon's currently owned native handle, if any, and clears it.
+    /// </summary>
+    /// <param name="notifyIcon">The icon whose owned handle should be released.</param>
+    private static void ReleaseOwnedHicon(INotifyIcon notifyIcon)
+    {
+        Interop.Shell32.NOTIFYICONDATA shellIconData = notifyIcon.ShellIconData;
+
+        if (shellIconData is null || shellIconData.hIcon == IntPtr.Zero)
+        {
+            return;
+        }
+
+        IntPtr owned = shellIconData.hIcon;
+        shellIconData.hIcon = IntPtr.Zero;
+
+        _ = IconHandleGateway.Destroy(owned);
     }
 }

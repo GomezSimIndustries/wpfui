@@ -14,19 +14,26 @@ internal sealed class TrayManagerFixture : IDisposable
 {
     private readonly IShellNotifyIconGateway _originalGateway;
     private readonly ITrayHookWindowFactory _originalFactory;
+    private readonly INativeIconHandleGateway _originalIconHandleGateway;
 
-    public TrayManagerFixture(IShellNotifyIconGateway gateway, ITrayHookWindowFactory factory)
+    public TrayManagerFixture(
+        IShellNotifyIconGateway gateway,
+        ITrayHookWindowFactory factory,
+        INativeIconHandleGateway? iconHandleGateway = null)
     {
         _originalGateway = TrayManager.ShellGateway;
         _originalFactory = TrayManager.HookWindowFactory;
+        _originalIconHandleGateway = TrayManager.IconHandleGateway;
 
         TrayManager.ShellGateway = gateway;
         TrayManager.HookWindowFactory = factory;
+        TrayManager.IconHandleGateway = iconHandleGateway ?? new FakeNativeIconHandleGateway();
     }
 
     public void Dispose()
     {
         TrayManager.ShellGateway = _originalGateway;
         TrayManager.HookWindowFactory = _originalFactory;
+        TrayManager.IconHandleGateway = _originalIconHandleGateway;
     }
 }

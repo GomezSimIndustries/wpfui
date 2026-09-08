@@ -13,9 +13,6 @@
         }
       ],
       "dest": "api",
-      "properties": {
-        "TargetFramework": "net472"
-      },
       "disableGitFeatures": false,
       "disableDefaultFilter": false
     }

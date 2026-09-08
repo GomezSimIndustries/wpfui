@@ -112,14 +112,14 @@ The `BreadcrumbBar` will automatically sync with the `NavigationView`'s navigati
 
 ## MVVM Integration
 
-For MVVM applications, it is recommended to use `INavigationService` and `IPageService` for navigation and page resolution.
+For MVVM applications, it is recommended to use `INavigationService` and `INavigationViewPageProvider` for navigation and page resolution.
 
 ### 1. Service Configuration
 
 First, register the required services and your pages/ViewModels with your dependency injection container.
 
 ```csharp
-// Using Microsoft.Extensions.DependencyInjection
+// Using Microsoft.Extensions.DependencyInjection and Wpf.Ui.DependencyInjection
 Host.CreateDefaultBuilder()
     .ConfigureServices((context, services) =>
     {
@@ -129,7 +129,7 @@ Host.CreateDefaultBuilder()
 
         // Services
         services.AddSingleton<INavigationService, NavigationService>();
-        services.AddSingleton<IPageService, PageService>();
+        services.AddNavigationViewPageProvider();
 
         // Pages and ViewModels
         services.AddScoped<DashboardPage>();
@@ -184,19 +184,16 @@ public partial class MainWindow : IWindow
 {
     public MainWindow(
         MainWindowViewModel viewModel,
-        INavigationService navigationService,
-        IPageService pageService
+        INavigationService navigationService
     )
     {
         ViewModel = viewModel;
         DataContext = this;
         InitializeComponent();
 
-        // Attach the service to the NavigationView
+        // Attach the service to the NavigationView; this also resolves the
+        // registered INavigationViewPageProvider for the control.
         navigationService.SetNavigationControl(RootNavigationView);
-        
-        // You can also set the page service, which is required for some functionalities
-        RootNavigationView.SetPageService(pageService);
     }
 
     public MainWindowViewModel ViewModel { get; }

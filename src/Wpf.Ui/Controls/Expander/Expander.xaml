@@ -32,6 +32,9 @@
                 HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                 VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                 Content="{TemplateBinding Content}"
+                ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                ContentTemplate="{TemplateBinding ContentTemplate}"
+                ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"
                 TextElement.FontSize="{TemplateBinding FontSize}" />
             <Grid
                 x:Name="ChevronGrid"
@@ -101,19 +104,14 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Expander}">
                     <ControlTemplate.Resources>
-                        <converters:AnimationFactorToValueConverter x:Key="AnimationFactorToValueConverter" />
+                        <converters:ExpanderContentOffsetConverter x:Key="ExpanderContentOffsetConverter" />
                     </ControlTemplate.Resources>
 
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-
+                    <DockPanel LastChildFill="True">
                         <!--  Top level controls always visible  -->
                         <Border
                             x:Name="ToggleButtonBorder"
-                            Grid.Row="0"
+                            DockPanel.Dock="Top"
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="1"
@@ -127,6 +125,9 @@
                                 HorizontalContentAlignment="Stretch"
                                 VerticalContentAlignment="Center"
                                 Content="{TemplateBinding Header}"
+                                ContentStringFormat="{TemplateBinding HeaderStringFormat}"
+                                ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}"
                                 FontSize="{TemplateBinding FontSize}"
                                 Foreground="{TemplateBinding Foreground}"
                                 IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
@@ -136,7 +137,7 @@
                         </Border>
 
                         <!--  Collapsed content to expand  -->
-                        <Grid Grid.Row="1" ClipToBounds="True">
+                        <Grid ClipToBounds="True">
                             <Border
                                 x:Name="ContentPresenterBorder"
                                 Background="{DynamicResource ExpanderContentBackground}"
@@ -149,24 +150,34 @@
                                     Margin="{TemplateBinding Padding}"
                                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                     VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                    Content="{TemplateBinding Content}" />
+                                    Content="{TemplateBinding Content}"
+                                    ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                    ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}" />
                                 <Border.RenderTransform>
                                     <TranslateTransform>
+                                        <TranslateTransform.X>
+                                            <MultiBinding Converter="{StaticResource ExpanderContentOffsetConverter}" ConverterParameter="X">
+                                                <Binding ElementName="ContentPresenterBorder" Path="ActualWidth" />
+                                                <Binding ElementName="ContentPresenterBorder" Path="(animations:AnimationProperties.AnimationTagValue)" />
+                                                <Binding Path="ExpandDirection" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            </MultiBinding>
+                                        </TranslateTransform.X>
                                         <TranslateTransform.Y>
-                                            <MultiBinding Converter="{StaticResource AnimationFactorToValueConverter}" ConverterParameter="negative">
+                                            <MultiBinding Converter="{StaticResource ExpanderContentOffsetConverter}" ConverterParameter="Y">
                                                 <Binding ElementName="ContentPresenterBorder" Path="ActualHeight" />
                                                 <Binding ElementName="ContentPresenterBorder" Path="(animations:AnimationProperties.AnimationTagValue)" />
+                                                <Binding Path="ExpandDirection" RelativeSource="{RelativeSource TemplatedParent}" />
                                             </MultiBinding>
                                         </TranslateTransform.Y>
                                     </TranslateTransform>
                                 </Border.RenderTransform>
                             </Border>
                         </Grid>
-                    </Grid>
+                    </DockPanel>
 
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsExpanded" Value="True">
-                            <Setter TargetName="ToggleButtonBorder" Property="CornerRadius" Value="4,4,0,0" />
                             <Trigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
@@ -200,6 +211,49 @@
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.ExitActions>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsExpanded" Value="True" />
+                                <Condition Property="ExpandDirection" Value="Down" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="ToggleButtonBorder" Property="CornerRadius" Value="4,4,0,0" />
+                        </MultiTrigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsExpanded" Value="True" />
+                                <Condition Property="ExpandDirection" Value="Up" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="ToggleButtonBorder" Property="CornerRadius" Value="0,0,4,4" />
+                            <Setter TargetName="ContentPresenterBorder" Property="CornerRadius" Value="4,4,0,0" />
+                            <Setter TargetName="ContentPresenterBorder" Property="BorderThickness" Value="1,1,1,0" />
+                        </MultiTrigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsExpanded" Value="True" />
+                                <Condition Property="ExpandDirection" Value="Right" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="ToggleButtonBorder" Property="CornerRadius" Value="4,0,0,4" />
+                            <Setter TargetName="ContentPresenterBorder" Property="CornerRadius" Value="0,4,4,0" />
+                            <Setter TargetName="ContentPresenterBorder" Property="BorderThickness" Value="0,1,1,1" />
+                        </MultiTrigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsExpanded" Value="True" />
+                                <Condition Property="ExpandDirection" Value="Left" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="ToggleButtonBorder" Property="CornerRadius" Value="0,4,4,0" />
+                            <Setter TargetName="ContentPresenterBorder" Property="CornerRadius" Value="4,0,0,4" />
+                            <Setter TargetName="ContentPresenterBorder" Property="BorderThickness" Value="1,1,0,1" />
+                        </MultiTrigger>
+                        <Trigger Property="ExpandDirection" Value="Up">
+                            <Setter TargetName="ToggleButtonBorder" Property="DockPanel.Dock" Value="Bottom" />
+                        </Trigger>
+                        <Trigger Property="ExpandDirection" Value="Left">
+                            <Setter TargetName="ToggleButtonBorder" Property="DockPanel.Dock" Value="Right" />
+                        </Trigger>
+                        <Trigger Property="ExpandDirection" Value="Right">
+                            <Setter TargetName="ToggleButtonBorder" Property="DockPanel.Dock" Value="Left" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="ContentPresenter" Property="TextElement.Foreground" Value="{DynamicResource ExpanderHeaderDisabledForeground}" />

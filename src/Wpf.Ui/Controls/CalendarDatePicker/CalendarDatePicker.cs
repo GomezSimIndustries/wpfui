@@ -28,7 +28,7 @@ public class CalendarDatePicker : Button
         nameof(IsCalendarOpen),
         typeof(bool),
         typeof(CalendarDatePicker),
-        new PropertyMetadata(false)
+        new PropertyMetadata(false, OnIsCalendarOpenChanged)
     );
 
     /// <summary>Identifies the <see cref="IsTodayHighlighted"/> dependency property.</summary>
@@ -93,14 +93,30 @@ public class CalendarDatePicker : Button
         set => SetValue(DateProperty, value);
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CalendarDatePicker"/> class.
+    /// </summary>
+    public CalendarDatePicker()
+    {
+        Unloaded += OnCalendarDatePickerUnloaded;
+    }
+
     /// <inheritdoc />
     protected override void OnClick()
     {
         base.OnClick();
 
-        InitializePopup();
-
         SetCurrentValue(IsCalendarOpenProperty, !IsCalendarOpen);
+    }
+
+    private static void OnIsCalendarOpenChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var picker = (CalendarDatePicker)d;
+
+        if ((bool)e.NewValue)
+        {
+            picker.InitializePopup();
+        }
     }
 
     private void InitializePopup()
@@ -140,6 +156,7 @@ public class CalendarDatePicker : Button
         );
 
         calendar.SelectedDatesChanged += OnSelectedDatesChanged;
+        calendar.PreviewKeyDown += OnCalendarPreviewKeyDown;
 
         _popup = new Popup
         {
@@ -154,6 +171,8 @@ public class CalendarDatePicker : Button
             AllowsTransparency = true,
         };
 
+        _popup.Opened += OnPopupOpened;
+
         _ = _popup.SetBinding(
             Popup.IsOpenProperty,
             new Binding(nameof(IsCalendarOpen))
@@ -163,6 +182,22 @@ public class CalendarDatePicker : Button
                 UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
             }
         );
+    }
+
+    private void OnCalendarDatePickerUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (IsCalendarOpen)
+        {
+            SetCurrentValue(IsCalendarOpenProperty, false);
+        }
+    }
+
+    private void OnCalendarPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            SetCurrentValue(IsCalendarOpenProperty, false);
+        }
     }
 
     protected virtual void OnPopupOpened(object? sender, EventArgs e)

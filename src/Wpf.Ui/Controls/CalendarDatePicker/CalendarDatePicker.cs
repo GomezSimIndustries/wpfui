@@ -3,6 +3,7 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using System.Globalization;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
@@ -21,6 +22,9 @@ namespace Wpf.Ui.Controls;
 /// </example>
 public class CalendarDatePicker : Button
 {
+    /// <summary>Marks the <see cref="FirstDayOfWeek"/> base value as not yet resolved from a culture.</summary>
+    private const DayOfWeek UnresolvedFirstDayOfWeek = (DayOfWeek)(-1);
+
     private Popup? _popup;
 
     /// <summary>Identifies the <see cref="IsCalendarOpen"/> dependency property.</summary>
@@ -52,7 +56,23 @@ public class CalendarDatePicker : Button
         nameof(FirstDayOfWeek),
         typeof(DayOfWeek),
         typeof(CalendarDatePicker),
-        new PropertyMetadata(DateTimeHelper.GetCurrentDateFormat().FirstDayOfWeek)
+        new PropertyMetadata(UnresolvedFirstDayOfWeek, null, CoerceFirstDayOfWeek)
+    );
+
+    /// <summary>Identifies the <see cref="PreviousButtonAutomationName"/> dependency property.</summary>
+    public static readonly DependencyProperty PreviousButtonAutomationNameProperty = DependencyProperty.Register(
+        nameof(PreviousButtonAutomationName),
+        typeof(string),
+        typeof(CalendarDatePicker),
+        new PropertyMetadata("Previous")
+    );
+
+    /// <summary>Identifies the <see cref="NextButtonAutomationName"/> dependency property.</summary>
+    public static readonly DependencyProperty NextButtonAutomationNameProperty = DependencyProperty.Register(
+        nameof(NextButtonAutomationName),
+        typeof(string),
+        typeof(CalendarDatePicker),
+        new PropertyMetadata("Next")
     );
 
     /// <summary>
@@ -77,10 +97,32 @@ public class CalendarDatePicker : Button
     /// <summary>
     /// Gets or sets the day that is considered the beginning of the week.
     /// </summary>
+    /// <remarks>
+    /// When never explicitly set, this resolves from <see cref="CultureInfo.CurrentCulture"/> at construction
+    /// time; a culture change after construction does not affect an already-created instance.
+    /// </remarks>
     public DayOfWeek FirstDayOfWeek
     {
         get { return (DayOfWeek)GetValue(FirstDayOfWeekProperty); }
         set { SetValue(FirstDayOfWeekProperty, value); }
+    }
+
+    /// <summary>
+    /// Gets or sets the accessible name announced for the popup calendar's previous-page navigation button.
+    /// </summary>
+    public string PreviousButtonAutomationName
+    {
+        get => (string)GetValue(PreviousButtonAutomationNameProperty);
+        set => SetValue(PreviousButtonAutomationNameProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the accessible name announced for the popup calendar's next-page navigation button.
+    /// </summary>
+    public string NextButtonAutomationName
+    {
+        get => (string)GetValue(NextButtonAutomationNameProperty);
+        set => SetValue(NextButtonAutomationNameProperty, value);
     }
 
     /// <summary>
@@ -99,6 +141,7 @@ public class CalendarDatePicker : Button
     public CalendarDatePicker()
     {
         Unloaded += OnCalendarDatePickerUnloaded;
+        CoerceValue(FirstDayOfWeekProperty);
     }
 
     /// <inheritdoc />
@@ -117,6 +160,13 @@ public class CalendarDatePicker : Button
         {
             picker.InitializePopup();
         }
+    }
+
+    private static object CoerceFirstDayOfWeek(DependencyObject d, object baseValue)
+    {
+        return (DayOfWeek)baseValue == UnresolvedFirstDayOfWeek
+            ? DateTimeHelper.GetCurrentDateFormat().FirstDayOfWeek
+            : baseValue;
     }
 
     private void InitializePopup()
@@ -151,6 +201,24 @@ public class CalendarDatePicker : Button
             {
                 Source = this,
                 Mode = BindingMode.TwoWay,
+                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
+            }
+        );
+        _ = calendar.SetBinding(
+            CalendarNavigation.PreviousButtonNameProperty,
+            new Binding(nameof(PreviousButtonAutomationName))
+            {
+                Source = this,
+                Mode = BindingMode.OneWay,
+                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
+            }
+        );
+        _ = calendar.SetBinding(
+            CalendarNavigation.NextButtonNameProperty,
+            new Binding(nameof(NextButtonAutomationName))
+            {
+                Source = this,
+                Mode = BindingMode.OneWay,
                 UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
             }
         );

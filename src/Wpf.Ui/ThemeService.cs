@@ -35,6 +35,7 @@ public partial class ThemeService : IThemeService
             SystemTheme.HC1 => ApplicationTheme.HighContrast,
             SystemTheme.HC2 => ApplicationTheme.HighContrast,
             SystemTheme.HCWhite => ApplicationTheme.HighContrast,
+            SystemTheme.Custom => ApplicationTheme.HighContrast,
             _ => ApplicationTheme.Unknown,
         };
     }

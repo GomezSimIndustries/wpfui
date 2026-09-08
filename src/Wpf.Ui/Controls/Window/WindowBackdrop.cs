@@ -330,7 +330,7 @@ public static class WindowBackdrop
         return true;
     }
 
-    private static SolidColorBrush GetFallbackBackgroundBrush()
+    internal static SolidColorBrush GetFallbackBackgroundBrush()
     {
         return ApplicationThemeManager.GetAppTheme() switch
         {
@@ -340,6 +340,7 @@ public static class WindowBackdrop
                 SystemTheme.HC2 => new SolidColorBrush(Color.FromArgb(0xFF, 0x00, 0x00, 0x00)),
                 SystemTheme.HCBlack => new SolidColorBrush(Color.FromArgb(0xFF, 0x20, 0x20, 0x20)),
                 SystemTheme.HCWhite => new SolidColorBrush(Color.FromArgb(0xFF, 0x20, 0x20, 0x20)),
+                SystemTheme.Custom => new SolidColorBrush(Color.FromArgb(0xFF, 0x20, 0x20, 0x20)),
                 _ => new SolidColorBrush(Color.FromArgb(0xFF, 0xFF, 0xFA, 0xEF)),
             },
             ApplicationTheme.Dark => new SolidColorBrush(Color.FromArgb(0xFF, 0x20, 0x20, 0x20)),

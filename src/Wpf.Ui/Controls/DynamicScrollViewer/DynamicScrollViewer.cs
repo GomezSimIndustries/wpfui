@@ -14,9 +14,17 @@ namespace Wpf.Ui.Controls;
 [DefaultEvent("ScrollChangedEvent")]
 public class DynamicScrollViewer : PassiveScrollViewer
 {
+    /// <summary>Timeout values at or above this many milliseconds use <see cref="CappedTimeoutMilliseconds"/> instead.</summary>
+    private const int UncappedTimeoutCeilingMilliseconds = 10000;
+
+    /// <summary>The hide delay used for a <see cref="Timeout"/> at or above <see cref="UncappedTimeoutCeilingMilliseconds"/>.</summary>
+    private const int CappedTimeoutMilliseconds = 1000;
+
     private readonly EventIdentifier _verticalIdentifier = new();
 
     private readonly EventIdentifier _horizontalIdentifier = new();
+
+    private readonly TimeProvider _timeProvider;
 
     // Due to the large number of triggered events, we limit the complex logic of DependencyProperty
     private bool _scrollingVertically = false;
@@ -26,6 +34,21 @@ public class DynamicScrollViewer : PassiveScrollViewer
     private int _timeout = 1200;
 
     private double _minimalChange = 40d;
+
+    /// <summary>Initializes a new instance of the <see cref="DynamicScrollViewer"/> class.</summary>
+    public DynamicScrollViewer()
+        : this(TimeProvider.System)
+    {
+    }
+
+    /// <summary>Initializes a new instance of the <see cref="DynamicScrollViewer"/> class using the given time source for its scroll indicator hide delay.</summary>
+    /// <param name="timeProvider">The source of the hide-delay timing.</param>
+    public DynamicScrollViewer(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+
+        Unloaded += static (sender, _) => ((DynamicScrollViewer)sender).OnUnloaded();
+    }
 
     /// <summary>Identifies the <see cref="IsScrollingVertically"/> dependency property.</summary>
     public static readonly DependencyProperty IsScrollingVerticallyProperty = DependencyProperty.Register(
@@ -56,7 +79,7 @@ public class DynamicScrollViewer : PassiveScrollViewer
         nameof(Timeout),
         typeof(int),
         typeof(DynamicScrollViewer),
-        new PropertyMetadata(1200, OnTimeoutChanged)
+        new PropertyMetadata(1200, OnTimeoutChanged, CoerceTimeout)
     );
 
     /// <summary>
@@ -87,8 +110,11 @@ public class DynamicScrollViewer : PassiveScrollViewer
     }
 
     /// <summary>
-    /// Gets or sets time after which the scroll is to be hidden.
+    /// Gets or sets time in milliseconds after which the scroll is to be hidden.
     /// </summary>
+    /// <remarks>
+    /// Negative values are coerced to 0. Values of 10000 or greater use a fixed 1000 millisecond hide delay.
+    /// </remarks>
     public int Timeout
     {
         get => (int)GetValue(TimeoutProperty);
@@ -125,22 +151,7 @@ public class DynamicScrollViewer : PassiveScrollViewer
         // If more than Timeout has passed since the last event, there is no interaction.
         // We pass this value to the ScrollBar and link it to IsMouseOver.
         // This way we have a dynamic scrollbar that responds to scroll / mouse over.
-        long currentEvent = _verticalIdentifier.GetNext();
-
-        if (!_scrollingVertically)
-        {
-            SetCurrentValue(IsScrollingVerticallyProperty, true);
-        }
-
-        if (_timeout > -1)
-        {
-            await Task.Delay(_timeout < 10000 ? _timeout : 1000);
-        }
-
-        if (_verticalIdentifier.IsEqual(currentEvent) && _scrollingVertically)
-        {
-            SetCurrentValue(IsScrollingVerticallyProperty, false);
-        }
+        await UpdateScrollingStateAsync(_verticalIdentifier, IsScrollingVerticallyProperty, () => _scrollingVertically);
     }
 
     private async void UpdateHorizontalScrollingState()
@@ -150,16 +161,46 @@ public class DynamicScrollViewer : PassiveScrollViewer
         // If more than Timeout has passed since the last event, there is no interaction.
         // We pass this value to the ScrollBar and link it to IsMouseOver.
         // This way we have a dynamic scrollbar that responds to scroll / mouse over.
-        long currentEvent = _horizontalIdentifier.GetNext();
+        await UpdateScrollingStateAsync(_horizontalIdentifier, IsScrollingHorizontallyProperty, () => _scrollingHorizontally);
+    }
 
-        if (!_scrollingHorizontally)
+    private async Task UpdateScrollingStateAsync(
+        EventIdentifier identifier,
+        DependencyProperty isScrollingProperty,
+        Func<bool> isScrolling
+    )
+    {
+        long currentEvent = identifier.GetNext();
+
+        if (!isScrolling())
         {
-            SetCurrentValue(IsScrollingHorizontallyProperty, true);
+            SetCurrentValue(isScrollingProperty, true);
         }
 
-        await Task.Delay(Timeout < 10000 ? Timeout : 1000);
+        int delay = _timeout < UncappedTimeoutCeilingMilliseconds ? _timeout : CappedTimeoutMilliseconds;
 
-        if (_horizontalIdentifier.IsEqual(currentEvent) && _scrollingHorizontally)
+        if (delay > 0)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(delay), _timeProvider);
+        }
+
+        if (identifier.IsEqual(currentEvent) && isScrolling())
+        {
+            SetCurrentValue(isScrollingProperty, false);
+        }
+    }
+
+    private void OnUnloaded()
+    {
+        _verticalIdentifier.GetNext();
+        _horizontalIdentifier.GetNext();
+
+        if (_scrollingVertically)
+        {
+            SetCurrentValue(IsScrollingVerticallyProperty, false);
+        }
+
+        if (_scrollingHorizontally)
         {
             SetCurrentValue(IsScrollingHorizontallyProperty, false);
         }
@@ -209,5 +250,12 @@ public class DynamicScrollViewer : PassiveScrollViewer
         }
 
         scroll._timeout = scroll.Timeout;
+    }
+
+    private static object CoerceTimeout(DependencyObject d, object baseValue)
+    {
+        int value = (int)baseValue;
+
+        return value < 0 ? 0 : value;
     }
 }

@@ -16,7 +16,7 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
-  <ItemGroup Condition="'$(GeneratePackageOnBuild)' == 'true'">
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
     <None Include="$(BuildToolsDirectory)nuget.png" Pack="true" PackagePath="\Icon.png" Visible="False" />
     <None Include="$(RepositoryDirectory)ThirdPartyNotices.txt" Pack="true" PackagePath="\" Visible="False" />
     <None Include="$(RepositoryDirectory)LICENSE.md" Pack="true" PackagePath="\LICENSE.md" Visible="False" />

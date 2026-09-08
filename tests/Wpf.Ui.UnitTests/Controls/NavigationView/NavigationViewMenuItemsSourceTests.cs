@@ -8,9 +8,8 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
-using System.Threading;
 using Wpf.Ui.Controls;
+using Wpf.Ui.UnitTests.TestHelpers;
 
 namespace Wpf.Ui.UnitTests.Controls;
 
@@ -180,29 +179,6 @@ public class NavigationViewMenuItemsSourceTests
             SourceKind.Header => navigationView.HeaderMenuItems,
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
-
-    private static class StaThread
-    {
-        public static void Run(Action action)
-        {
-            ExceptionDispatchInfo? capturedException = null;
-            var thread = new Thread(() =>
-            {
-                try
-                {
-                    action();
-                }
-                catch (Exception ex)
-                {
-                    capturedException = ExceptionDispatchInfo.Capture(ex);
-                }
-            });
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
-            thread.Join();
-            capturedException?.Throw();
-        }
-    }
 
     private sealed class RecordingObservableSource : IEnumerable, INotifyCollectionChanged
     {

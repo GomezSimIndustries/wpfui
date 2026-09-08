@@ -3,11 +3,10 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using System.Runtime.ExceptionServices;
-using System.Threading;
 using System.Windows.Controls;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Controls;
+using Wpf.Ui.UnitTests.TestHelpers;
 
 namespace Wpf.Ui.UnitTests.Controls;
 
@@ -75,29 +74,6 @@ public sealed class NavigationWindowContractTests
         {
             CallCount++;
             return result;
-        }
-    }
-
-    private static class StaThread
-    {
-        public static void Run(Action action)
-        {
-            ExceptionDispatchInfo? capturedException = null;
-            var thread = new Thread(() =>
-            {
-                try
-                {
-                    action();
-                }
-                catch (Exception ex)
-                {
-                    capturedException = ExceptionDispatchInfo.Capture(ex);
-                }
-            });
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
-            thread.Join();
-            capturedException?.Throw();
         }
     }
 }

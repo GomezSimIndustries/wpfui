@@ -15,20 +15,30 @@ namespace Wpf.Ui.UnitTests.TestHelpers;
 public static class WpfTestHost
 {
     private static readonly object Lock = new();
+
+    /// <summary>Serializes every construction of WPF controls against the shared dispatcher, whether it runs there or on a dedicated STA thread.</summary>
+    internal static readonly object ExclusivityGate = new();
+
     private static Dispatcher? _dispatcher;
 
     /// <summary>Runs an action on the shared test dispatcher and blocks until it completes.</summary>
     public static void Invoke(Action action)
     {
         EnsureInitialized();
-        _dispatcher!.Invoke(action);
+        lock (ExclusivityGate)
+        {
+            _dispatcher!.Invoke(action);
+        }
     }
 
     /// <summary>Runs a function on the shared test dispatcher and returns its result.</summary>
     public static T Invoke<T>(Func<T> func)
     {
         EnsureInitialized();
-        return _dispatcher!.Invoke(func);
+        lock (ExclusivityGate)
+        {
+            return _dispatcher!.Invoke(func);
+        }
     }
 
     /// <summary>Creates a window positioned off the visible desktop, for use as an owner in window lifecycle tests.</summary>
@@ -47,7 +57,8 @@ public static class WpfTestHost
             Content = new Grid(),
         };
 
-    private static void EnsureInitialized()
+    /// <summary>Starts the shared test dispatcher thread if it has not already started, blocking until its resource dictionaries are loaded.</summary>
+    internal static void EnsureInitialized()
     {
         if (_dispatcher is not null)
         {

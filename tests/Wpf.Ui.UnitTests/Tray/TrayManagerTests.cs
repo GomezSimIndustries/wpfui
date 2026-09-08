@@ -7,6 +7,10 @@ using Wpf.Ui.Tray;
 
 namespace Wpf.Ui.UnitTests.Tray;
 
+[CollectionDefinition("TrayManagerState")]
+public sealed class TrayManagerStateCollectionDefinition;
+
+[Collection("TrayManagerState")]
 public class TrayManagerTests
 {
     [Fact]

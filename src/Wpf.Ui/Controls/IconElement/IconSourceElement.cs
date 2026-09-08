@@ -3,6 +3,7 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using System.Windows.Controls;
 using System.Windows.Markup;
 
 // ReSharper disable once CheckNamespace
@@ -19,7 +20,7 @@ public class IconSourceElement : IconElement
         nameof(IconSource),
         typeof(IconSource),
         typeof(IconSourceElement),
-        new FrameworkPropertyMetadata(null)
+        new FrameworkPropertyMetadata(null, OnIconSourcePropertyChanged)
     );
 
     /// <summary>
@@ -33,12 +34,51 @@ public class IconSourceElement : IconElement
 
     protected override UIElement InitializeChildren()
     {
-        // TODO: Come up with an elegant solution
-        throw new InvalidOperationException($"Use {nameof(CreateIconElement)}");
+        return CreatePresentedChild();
     }
 
     public IconElement? CreateIconElement()
     {
         return IconSource?.CreateIconElement();
+    }
+
+    private static void OnIconSourcePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        ((IconSourceElement)d).OnIconSourceChanged((IconSource?)e.OldValue, (IconSource?)e.NewValue);
+    }
+
+    private void OnIconSourceChanged(IconSource? oldSource, IconSource? newSource)
+    {
+        if (oldSource is not null)
+        {
+            oldSource.Changed -= OnIconSourceContentChanged;
+        }
+
+        if (newSource is not null)
+        {
+            newSource.Changed += OnIconSourceContentChanged;
+        }
+
+        RefreshPresentedChild();
+    }
+
+    private void OnIconSourceContentChanged(object? sender, EventArgs e)
+    {
+        RefreshPresentedChild();
+    }
+
+    private void RefreshPresentedChild()
+    {
+        if (!HasPresentedChild)
+        {
+            return;
+        }
+
+        ReplacePresentedChild(CreatePresentedChild());
+    }
+
+    private UIElement CreatePresentedChild()
+    {
+        return (UIElement?)CreateIconElement() ?? new Grid();
     }
 }

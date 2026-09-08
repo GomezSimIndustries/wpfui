@@ -28,5 +28,17 @@ public abstract class IconSource : DependencyObject
         set => SetValue(ForegroundProperty, value);
     }
 
+    /// <summary>
+    /// Occurs when a property affecting the presented icon changes.
+    /// </summary>
+    public event EventHandler? Changed;
+
     public abstract IconElement CreateIconElement();
+
+    protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 }

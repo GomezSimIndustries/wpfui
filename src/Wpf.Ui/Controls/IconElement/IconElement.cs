@@ -48,9 +48,34 @@ public abstract class IconElement : FrameworkElement
 
     private Grid? _layoutRoot;
 
+    /// <summary>
+    /// Gets a value indicating whether the presented child has already been created.
+    /// </summary>
+    protected bool HasPresentedChild => _layoutRoot != null;
+
     protected abstract UIElement InitializeChildren();
 
     protected virtual void OnForegroundChanged(DependencyPropertyChangedEventArgs args) { }
+
+    /// <summary>
+    /// Replaces the presented child, leaving the layout root and its visual-parent registration untouched.
+    /// </summary>
+    /// <param name="child">The element to present.</param>
+    protected void ReplacePresentedChild(UIElement child)
+    {
+        ArgumentNullException.ThrowIfNull(child);
+
+        if (_layoutRoot is null)
+        {
+            return;
+        }
+
+        _layoutRoot.Children.Clear();
+        _ = _layoutRoot.Children.Add(child);
+
+        InvalidateMeasure();
+        InvalidateArrange();
+    }
 
     private void EnsureLayoutRoot()
     {

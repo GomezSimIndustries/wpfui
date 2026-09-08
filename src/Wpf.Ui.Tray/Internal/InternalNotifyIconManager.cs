@@ -83,6 +83,11 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
     /// <inheritdoc />
     public virtual bool Register()
     {
+        if (_disposed)
+        {
+            return false;
+        }
+
         IsRegistered = TrayManager.Register(this);
 
         return IsRegistered;
@@ -91,6 +96,11 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
     /// <inheritdoc />
     public virtual bool Register(Window parentWindow)
     {
+        if (_disposed)
+        {
+            return false;
+        }
+
         IsRegistered = TrayManager.Register(this, parentWindow);
 
         return IsRegistered;
@@ -251,6 +261,8 @@ internal class InternalNotifyIconManager : IDisposable, INotifyIcon
         }
 
         _disposed = true;
+
+        ApplicationThemeManager.Changed -= OnThemeChanged;
 
         if (!disposing)
         {

@@ -97,7 +97,7 @@ public class ColorPicker : Control
 
     /// <summary>Identifies the <see cref="IsAlphaEnabled"/> dependency property.</summary>
     public static readonly DependencyProperty IsAlphaEnabledProperty = DependencyProperty.Register(
-        nameof(IsAlphaEnabled), typeof(bool), typeof(ColorPicker), new PropertyMetadata(false));
+        nameof(IsAlphaEnabled), typeof(bool), typeof(ColorPicker), new PropertyMetadata(false, OnIsAlphaEnabledChanged));
 
     /// <summary>Identifies the <see cref="IsColorSpectrumVisible"/> dependency property.</summary>
     public static readonly DependencyProperty IsColorSpectrumVisibleProperty = DependencyProperty.Register(
@@ -848,8 +848,7 @@ public class ColorPicker : Control
     private void UpdateColorFromHsv()
     {
         var (r, g, b) = ColorExtensions.FromHsvToRgb((float)_hue, (float)_saturation, (float)_value);
-        var a = IsAlphaEnabled ? Color.A : (byte)255;
-        SetCurrentValue(ColorProperty, Color.FromArgb(a, ClampByte(r), ClampByte(g), ClampByte(b)));
+        SetCurrentValue(ColorProperty, Color.FromArgb(Color.A, ClampByte(r), ClampByte(g), ClampByte(b)));
     }
 
     private void SyncFromColor(Color color)
@@ -1020,6 +1019,16 @@ public class ColorPicker : Control
 
         picker.SyncFromColor(newColor);
         picker.RaiseEvent(new ColorChangedEventArgs(ColorChangedEvent, picker, oldColor, newColor));
+    }
+
+    private static void OnIsAlphaEnabledChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not ColorPicker picker)
+        {
+            return;
+        }
+
+        picker.SyncFromColor(picker.Color);
     }
 
     private static void OnPreviousColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

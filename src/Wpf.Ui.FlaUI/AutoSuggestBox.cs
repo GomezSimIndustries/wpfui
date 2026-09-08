@@ -3,6 +3,8 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using System;
+
 namespace Wpf.Ui.FlaUI;
 
 /// <summary>
@@ -18,7 +20,8 @@ public class AutoSuggestBox(FrameworkAutomationElementBase frameworkAutomationEl
     {
         this.Click();
 
-        this.Patterns.Value.PatternOrDefault?.SetValue(string.Empty);
+        this.ClearValue();
+
         if (string.IsNullOrEmpty(value))
         {
             return;
@@ -37,5 +40,35 @@ public class AutoSuggestBox(FrameworkAutomationElementBase frameworkAutomationEl
         Keyboard.Type(VirtualKeyShort.ENTER);
 
         Wait.UntilInputIsProcessed();
+    }
+
+    /// <summary>
+    /// Clears the element to an empty value and confirms the value is empty afterward.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The element still reports a non-empty value after clearing.</exception>
+    private void ClearValue()
+    {
+        if (this.Patterns.Value.TryGetPattern(out IValuePattern? valuePattern))
+        {
+            valuePattern.SetValue(string.Empty);
+        }
+        else
+        {
+            Keyboard.Press(VirtualKeyShort.CONTROL);
+            Keyboard.Type(VirtualKeyShort.KEY_A);
+            Keyboard.Release(VirtualKeyShort.CONTROL);
+            Keyboard.Type(VirtualKeyShort.BACK);
+        }
+
+        Wait.UntilInputIsProcessed();
+
+        if (
+            this.Patterns.Value.TryGetPattern(out IValuePattern? clearedPattern)
+            && clearedPattern.Value.TryGetValue(out string? current)
+            && !string.IsNullOrEmpty(current)
+        )
+        {
+            throw new InvalidOperationException("AutoSuggestBox value was not empty after clearing.");
+        }
     }
 }

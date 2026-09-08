@@ -122,19 +122,26 @@ public sealed class ContentDialogAutomationTests : UiTest
             );
     }
 
-    private Task OpenDialog()
+    private async Task OpenDialog()
     {
-        // ensure dialog opened by clicking Show
         var showButton = FindFirst(c => c.ByText("Show"));
-        if (showButton == null)
+        showButton.Should().NotBeNull("because the Show button must be present to open the ContentDialog");
+        showButton.AsButton().Click();
+
+        for (var i = 0; i < 10 && FindOpenDialog() == null; i++)
         {
-            // If Show button is not found, assume dialog is already open; give UI a moment to stabilize.
-            return Wait(1, TestContext.Current.CancellationToken);
+            await Wait(1, TestContext.Current.CancellationToken);
         }
 
-        showButton.AsButton().Click();
-        return Wait(1, TestContext.Current.CancellationToken);
+        FindOpenDialog().Should().NotBeNull("because the ContentDialog should have opened after clicking Show");
     }
+
+    /// <summary>
+    /// Finds the root automation element of the currently open ContentDialog.
+    /// </summary>
+    /// <returns>The dialog's root element, or null if no dialog is open.</returns>
+    private AutomationElement? FindOpenDialog() =>
+        MainWindow?.FindFirstDescendant(cf => cf.ByControlType(ControlType.Window));
 
     /// <summary>
     /// Polls the UI until the specified text appears or a retry limit is reached.
@@ -163,37 +170,33 @@ public sealed class ContentDialogAutomationTests : UiTest
     }
 
     /// <summary>
-    /// Finds and clicks a button matching one of the provided candidate texts.
-    /// If no direct match is found, falls back to clicking the last available button in the window.
+    /// Finds and clicks a button matching one of the provided candidate texts within the open ContentDialog.
     /// </summary>
     /// <param name="candidates">Array of acceptable button texts (first match is used).</param>
-    /// <returns>A task that waits a short time after clicking to allow UI to settle.</returns>
-    private Task ClickButtonMatching(string[] candidates)
+    /// <returns>A task that completes once the dialog has closed.</returns>
+    private async Task ClickButtonMatching(string[] candidates)
     {
+        var dialog = FindOpenDialog();
+        dialog.Should().NotBeNull("because a ContentDialog must be open before clicking one of its buttons");
+
         AutomationElement? btn = null;
 
         foreach (var txt in candidates)
         {
-            btn = FindFirst(c => c.ByText(txt));
+            btn = dialog!.FindFirstDescendant(c => c.ByText(txt));
             if (btn != null)
             {
                 break;
             }
         }
 
-        if (btn == null)
-        {
-            var buttons = MainWindow?.FindAllDescendants(cf => cf.ByControlType(ControlType.Button));
-            if (buttons is { Length: > 0 })
-            {
-                btn = buttons.Last();
-            }
-        }
-
-        btn.Should().NotBeNull($"expected one of: {string.Join(',', candidates)}");
+        btn.Should().NotBeNull($"expected one of: {string.Join(',', candidates)} within the open ContentDialog");
         btn.AsButton().Click();
 
-        return Wait(1, TestContext.Current.CancellationToken);
+        for (var i = 0; i < 10 && FindOpenDialog() != null; i++)
+        {
+            await Wait(1, TestContext.Current.CancellationToken);
+        }
     }
 }
 

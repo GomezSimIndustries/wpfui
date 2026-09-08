@@ -13,6 +13,14 @@ namespace Wpf.Ui.Controls;
 /// </summary>
 public class Image : Control
 {
+    static Image()
+    {
+        BorderThicknessProperty.OverrideMetadata(
+            typeof(Image),
+            new FrameworkPropertyMetadata(new PropertyChangedCallback(OnBorderThicknessChanged))
+        );
+    }
+
     /// <summary>Identifies the <see cref="Source"/> dependency property.</summary>
     public static readonly DependencyProperty SourceProperty = DependencyProperty.Register(
         nameof(Source),
@@ -121,19 +129,25 @@ public class Image : Control
     /// </summary>
     internal CornerRadius InnerCornerRadius => (CornerRadius)GetValue(InnerCornerRadiusProperty);
 
-    private static void OnCornerRadiusChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    private static void OnCornerRadiusChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
+        UpdateInnerCornerRadius(d);
+
+    private static void OnBorderThicknessChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
+        UpdateInnerCornerRadius(d);
+
+    private static void UpdateInnerCornerRadius(DependencyObject d)
     {
         var thickness = (Thickness)d.GetValue(BorderThicknessProperty);
-        var outerRarius = (CornerRadius)e.NewValue;
+        var outerRadius = (CornerRadius)d.GetValue(CornerRadiusProperty);
 
-        // Inner radius = Outer radius - thickenss/2
+        // Inner radius = Outer radius - thickness/2
         d.SetValue(
             InnerCornerRadiusPropertyKey,
             new CornerRadius(
-                topLeft: Math.Max(0, (int)Math.Round(outerRarius.TopLeft - (thickness.Left / 2), 0)),
-                topRight: Math.Max(0, (int)Math.Round(outerRarius.TopRight - (thickness.Top / 2), 0)),
-                bottomRight: Math.Max(0, (int)Math.Round(outerRarius.BottomRight - (thickness.Right / 2), 0)),
-                bottomLeft: Math.Max(0, (int)Math.Round(outerRarius.BottomLeft - (thickness.Bottom / 2), 0))
+                topLeft: Math.Max(0, (int)Math.Round(outerRadius.TopLeft - (thickness.Left / 2), 0)),
+                topRight: Math.Max(0, (int)Math.Round(outerRadius.TopRight - (thickness.Top / 2), 0)),
+                bottomRight: Math.Max(0, (int)Math.Round(outerRadius.BottomRight - (thickness.Right / 2), 0)),
+                bottomLeft: Math.Max(0, (int)Math.Round(outerRadius.BottomLeft - (thickness.Bottom / 2), 0))
             )
         );
     }

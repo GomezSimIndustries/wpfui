@@ -416,11 +416,13 @@ public partial class TitleBar : System.Windows.Controls.Control, IThemeControl
     private readonly TitleBarButton[] _buttons = new TitleBarButton[4];
     private readonly TextBlock _titleBlock;
     private Window? _currentWindow;
+    private bool _windowHandlersAttached;
+    private bool _themeChangeSubscribed;
+    private bool _mouseRightButtonHandlerAttached;
+    private HwndSource? _hookedWindowSource;
 
     /// <summary>
-    /// Returns the cached window reference, falling back to a visual tree lookup
-    /// if the reference was lost (e.g., after Unloaded removed the Loaded handler
-    /// and the TitleBar was subsequently reloaded).
+    /// Gets the current window, falling back to a visual tree lookup when no window has attached yet.
     /// </summary>
     private Window? CurrentWindow
         => _currentWindow ??= Window.GetWindow(this);
@@ -461,7 +463,7 @@ public partial class TitleBar : System.Windows.Controls.Control, IThemeControl
         base.OnInitialized(e);
 
         SetCurrentValue(ApplicationThemeProperty, Appearance.ApplicationThemeManager.GetAppTheme());
-        Appearance.ApplicationThemeManager.Changed += OnThemeChanged;
+        SubscribeToThemeChanges();
     }
 
     protected virtual void OnLoaded(object sender, RoutedEventArgs e)
@@ -471,31 +473,96 @@ public partial class TitleBar : System.Windows.Controls.Control, IThemeControl
             return;
         }
 
-        _currentWindow = Window.GetWindow(this);
-        if (_currentWindow is null)
+        Window? window = Window.GetWindow(this);
+        if (window is null)
         {
             return;
         }
 
-        if (_currentWindow.WindowState == WindowState.Maximized)
+        if (window.WindowState == WindowState.Maximized)
         {
             SetCurrentValue(IsMaximizedProperty, true);
-            _currentWindow.SetCurrentValue(Window.WindowStateProperty, WindowState.Maximized);
+            window.SetCurrentValue(Window.WindowStateProperty, WindowState.Maximized);
         }
 
-        _currentWindow.StateChanged += OnParentWindowStateChanged;
-        _currentWindow.ContentRendered += OnWindowContentRendered;
-
+        AttachToWindow(window);
+        SubscribeToThemeChanges();
         SubscribeToSystemParameters();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
-        Loaded -= OnLoaded;
-        Unloaded -= OnUnloaded;
+        DetachFromWindow();
+        UnsubscribeFromThemeChanges();
+        UnsubscribeToSystemParameters();
+    }
+
+    /// <summary>
+    /// Tracks the given window's state and content-rendered notifications.
+    /// </summary>
+    private void AttachToWindow(Window window)
+    {
+        if (ReferenceEquals(_currentWindow, window) && _windowHandlersAttached)
+        {
+            return;
+        }
+
+        DetachFromWindow();
+
+        _currentWindow = window;
+        _currentWindow.StateChanged += OnParentWindowStateChanged;
+        _currentWindow.ContentRendered += OnWindowContentRendered;
+        _windowHandlersAttached = true;
+    }
+
+    /// <summary>
+    /// Stops tracking the currently tracked window and removes its Hwnd hook.
+    /// </summary>
+    private void DetachFromWindow()
+    {
+        DetachHwndHook();
+
+        if (!_windowHandlersAttached || _currentWindow is null)
+        {
+            return;
+        }
+
+        _currentWindow.StateChanged -= OnParentWindowStateChanged;
+        _currentWindow.ContentRendered -= OnWindowContentRendered;
+        _windowHandlersAttached = false;
+    }
+
+    private void SubscribeToThemeChanges()
+    {
+        if (_themeChangeSubscribed)
+        {
+            return;
+        }
+
+        Appearance.ApplicationThemeManager.Changed += OnThemeChanged;
+        _themeChangeSubscribed = true;
+    }
+
+    private void UnsubscribeFromThemeChanges()
+    {
+        if (!_themeChangeSubscribed)
+        {
+            return;
+        }
 
         Appearance.ApplicationThemeManager.Changed -= OnThemeChanged;
-        UnsubscribeToSystemParameters();
+        _themeChangeSubscribed = false;
+    }
+
+    private void DetachHwndHook()
+    {
+        if (_hookedWindowSource is null)
+        {
+            return;
+        }
+
+        _hookedWindowSource.RemoveHook(HwndSourceHook);
+        _hookedWindowSource = null;
     }
 
     /// <summary>
@@ -513,7 +580,11 @@ public partial class TitleBar : System.Windows.Controls.Control, IThemeControl
             _parentWindow = VisualTreeHelper.GetParent(_parentWindow);
         }
 
-        MouseRightButtonUp += TitleBar_MouseRightButtonUp;
+        if (!_mouseRightButtonHandlerAttached)
+        {
+            MouseRightButtonUp += TitleBar_MouseRightButtonUp;
+            _mouseRightButtonHandlerAttached = true;
+        }
 
         /*_mainGrid = GetTemplateChild<System.Windows.Controls.Grid>(ElementMainGrid);*/
         _icon = GetTemplateChild<System.Windows.Controls.ContentPresenter>(ElementIcon);
@@ -661,7 +732,9 @@ public partial class TitleBar : System.Windows.Controls.Control, IThemeControl
             return;
         }
 
+        DetachHwndHook();
         windowSource.AddHook(HwndSourceHook);
+        _hookedWindowSource = windowSource;
     }
 
     private IntPtr HwndSourceHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -770,7 +843,16 @@ public partial class TitleBar : System.Windows.Controls.Control, IThemeControl
         Point devicePoint = PointToScreen(e.GetPosition(this));
         DpiScale dpi = VisualTreeHelper.GetDpi(this);
 
-        SystemCommands.ShowSystemMenu(_parentWindow as Window, ToDeviceIndependentPoint(devicePoint, dpi));
+        ShowSystemMenu(ToDeviceIndependentPoint(devicePoint, dpi));
+    }
+
+    /// <summary>
+    /// Shows the parent window's system menu at the given point.
+    /// </summary>
+    /// <param name="point">The point, in device-independent pixels, at which to show the menu.</param>
+    protected virtual void ShowSystemMenu(Point point)
+    {
+        SystemCommands.ShowSystemMenu(_parentWindow as Window, point);
     }
 
     /// <summary>

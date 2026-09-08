@@ -115,8 +115,53 @@ public partial class NavigationView : System.Windows.Controls.Control, INavigati
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        // TODO: Refresh
+        RestoreSubscriptionsDetachedOnUnload();
+
         UpdateVisualState((NavigationView)sender);
+    }
+
+    /// <summary>
+    /// Re-attaches every subscription <see cref="OnUnloaded"/> removes and repopulates the
+    /// route dictionaries it clears.
+    /// </summary>
+    private void RestoreSubscriptionsDetachedOnUnload()
+    {
+        NavigationStack.CollectionChanged -= NavigationStackOnCollectionChanged;
+        NavigationStack.CollectionChanged += NavigationStackOnCollectionChanged;
+
+        AddItemsToDictionaries();
+
+        if (AutoSuggestBox is not null)
+        {
+            AutoSuggestBox.SuggestionChosen -= AutoSuggestBoxOnSuggestionChosen;
+            AutoSuggestBox.SuggestionChosen += AutoSuggestBoxOnSuggestionChosen;
+            AutoSuggestBox.QuerySubmitted -= AutoSuggestBoxOnQuerySubmitted;
+            AutoSuggestBox.QuerySubmitted += AutoSuggestBoxOnQuerySubmitted;
+        }
+
+        if (Header is BreadcrumbBar breadcrumbBar)
+        {
+            breadcrumbBar.ItemClicked -= BreadcrumbBarOnItemClicked;
+            breadcrumbBar.ItemClicked += BreadcrumbBarOnItemClicked;
+        }
+
+        if (ToggleButton is not null)
+        {
+            ToggleButton.Click -= OnToggleButtonClick;
+            ToggleButton.Click += OnToggleButtonClick;
+        }
+
+        if (BackButton is not null)
+        {
+            BackButton.Click -= OnBackButtonClick;
+            BackButton.Click += OnBackButtonClick;
+        }
+
+        if (AutoSuggestBoxSymbolButton is not null)
+        {
+            AutoSuggestBoxSymbolButton.Click -= AutoSuggestBoxSymbolButtonOnClick;
+            AutoSuggestBoxSymbolButton.Click += AutoSuggestBoxSymbolButtonOnClick;
+        }
     }
 
     /// <summary>
@@ -124,10 +169,6 @@ public partial class NavigationView : System.Windows.Controls.Control, INavigati
     /// </summary>
     protected virtual void OnUnloaded(object sender, RoutedEventArgs e)
     {
-        Loaded -= OnLoaded;
-        Unloaded -= OnUnloaded;
-        SizeChanged -= OnSizeChanged;
-
         NavigationStack.CollectionChanged -= NavigationStackOnCollectionChanged;
 
         PageIdOrTargetTagNavigationViewsDictionary.Clear();
@@ -155,7 +196,7 @@ public partial class NavigationView : System.Windows.Controls.Control, INavigati
 
         if (BackButton is not null)
         {
-            BackButton.Click -= OnToggleButtonClick;
+            BackButton.Click -= OnBackButtonClick;
         }
 
         if (AutoSuggestBoxSymbolButton is not null)

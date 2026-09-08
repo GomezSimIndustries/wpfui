@@ -112,6 +112,8 @@ public partial class NavigationView
     {
         base.OnApplyTemplate();
 
+        DetachTemplatePartHandlers();
+
         NavigationViewContentPresenter = GetTemplateChild<NavigationViewContentPresenter>(
             TemplateElementNavigationViewContentPresenter
         );
@@ -146,7 +148,6 @@ public partial class NavigationView
 
         if (NavigationViewContentPresenter is not null)
         {
-            NavigationViewContentPresenter.Navigated -= OnNavigationViewContentPresenterNavigated;
             NavigationViewContentPresenter.Navigated += OnNavigationViewContentPresenterNavigated;
 
             // Apply the ContentScrollViewerVisibility setting to the content presenter
@@ -163,7 +164,6 @@ public partial class NavigationView
         {
             AutoSuggestBoxSymbolButton = autoSuggestBoxSymbolButton;
 
-            AutoSuggestBoxSymbolButton.Click -= AutoSuggestBoxSymbolButtonOnClick;
             AutoSuggestBoxSymbolButton.Click += AutoSuggestBoxSymbolButtonOnClick;
         }
 
@@ -171,7 +171,6 @@ public partial class NavigationView
         {
             BackButton = backButton;
 
-            BackButton.Click -= OnBackButtonClick;
             BackButton.Click += OnBackButtonClick;
         }
 
@@ -179,8 +178,34 @@ public partial class NavigationView
         {
             ToggleButton = toggleButton;
 
-            ToggleButton.Click -= OnToggleButtonClick;
             ToggleButton.Click += OnToggleButtonClick;
+        }
+    }
+
+    /// <summary>
+    /// Detaches the handlers this instance attached to the template parts fetched by the
+    /// previous <see cref="OnApplyTemplate"/> call, before those part fields are overwritten.
+    /// </summary>
+    private void DetachTemplatePartHandlers()
+    {
+        if (NavigationViewContentPresenter is not null)
+        {
+            NavigationViewContentPresenter.Navigated -= OnNavigationViewContentPresenterNavigated;
+        }
+
+        if (AutoSuggestBoxSymbolButton is not null)
+        {
+            AutoSuggestBoxSymbolButton.Click -= AutoSuggestBoxSymbolButtonOnClick;
+        }
+
+        if (BackButton is not null)
+        {
+            BackButton.Click -= OnBackButtonClick;
+        }
+
+        if (ToggleButton is not null)
+        {
+            ToggleButton.Click -= OnToggleButtonClick;
         }
     }
 

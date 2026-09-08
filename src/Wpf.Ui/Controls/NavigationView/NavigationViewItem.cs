@@ -289,6 +289,25 @@ public class NavigationViewItem
         }
     }
 
+    private void SubscribeToMenuItemsCollectionChanged()
+    {
+        if (GetValue(MenuItemsProperty) is ObservableCollection<object> menuItems)
+        {
+            menuItems.CollectionChanged -= OnMenuItems_CollectionChanged;
+            menuItems.CollectionChanged += OnMenuItems_CollectionChanged;
+        }
+    }
+
+    private void SubscribeToMenuItemsSource()
+    {
+        // Re-subscribe to external MenuItemsSource if it implements INotifyCollectionChanged
+        if (MenuItemsSource is INotifyCollectionChanged notifyCollection)
+        {
+            notifyCollection.CollectionChanged -= OnMenuItemsCollectionChanged;
+            notifyCollection.CollectionChanged += OnMenuItemsCollectionChanged;
+        }
+    }
+
     private void UnsubscribeFromNavigationViewEvents()
     {
         if (_subscribedNavigationView is NavigationView navigationView)
@@ -637,6 +656,9 @@ public class NavigationViewItem
 
     private void InitializeNavigationViewEvents()
     {
+        SubscribeToMenuItemsCollectionChanged();
+        SubscribeToMenuItemsSource();
+
         if (NavigationView.GetNavigationParent(this) is not { } navigationView)
         {
             return;

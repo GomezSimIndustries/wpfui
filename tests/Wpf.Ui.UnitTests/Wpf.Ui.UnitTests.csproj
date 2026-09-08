@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\Wpf.Ui\Wpf.Ui.csproj" />
     <ProjectReference Include="..\..\src\Wpf.Ui.Tray\Wpf.Ui.Tray.csproj" />
     <ProjectReference Include="..\..\src\Wpf.Ui.SyntaxHighlight\Wpf.Ui.SyntaxHighlight.csproj" />
+    <ProjectReference Include="..\..\src\Wpf.Ui.FontMapper\Wpf.Ui.FontMapper.csproj" />
   </ItemGroup>
 
 </Project>

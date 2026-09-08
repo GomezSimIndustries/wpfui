@@ -98,6 +98,12 @@ public class Flyout : System.Windows.Controls.ContentControl
     {
         base.OnApplyTemplate();
 
+        if (_popup is not null)
+        {
+            _popup.Opened -= OnPopupOpened;
+            _popup.Closed -= OnPopupClosed;
+        }
+
         _popup = GetTemplateChild(ElementPopup) as Popup;
 
         if (_popup is null)

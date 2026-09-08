@@ -19,15 +19,50 @@
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     mc:Ignorable="d">
 
-    <Grid Margin="0,0,0,24">
+    <StackPanel Margin="0,0,0,24">
         <controls:ControlExample
             Margin="0"
             HeaderText="WPF UI TimePicker."
-            XamlCode="&lt;ui:TimePicker ClockIdentifier=&quot;Clock24Hour&quot; /&gt;">
-            <ui:TimePicker
-                Width="300"
-                HorizontalAlignment="Left"
-                ClockIdentifier="Clock12Hour" />
+            XamlCode="&lt;ui:TimePicker ClockIdentifier=&quot;Clock12Hour&quot; /&gt;">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:TimePicker
+                    x:Name="TwelveHourTimePicker"
+                    Grid.Column="0"
+                    Width="300"
+                    ClockIdentifier="Clock12Hour" />
+                <ui:TextBlock
+                    Grid.Column="1"
+                    Margin="8,0,8,0"
+                    VerticalAlignment="Center"
+                    Text="{Binding ElementName=TwelveHourTimePicker, Path=SelectedTime}" />
+            </Grid>
         </controls:ControlExample>
-    </Grid>
+
+        <controls:ControlExample
+            Margin="0,24,0,0"
+            HeaderText="A 24-hour picker stepping through quarter hours."
+            XamlCode="&lt;ui:TimePicker ClockIdentifier=&quot;Clock24Hour&quot; MinuteIncrement=&quot;15&quot; /&gt;">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:TimePicker
+                    x:Name="TwentyFourHourTimePicker"
+                    Grid.Column="0"
+                    Width="300"
+                    ClockIdentifier="Clock24Hour"
+                    MinuteIncrement="15" />
+                <ui:TextBlock
+                    Grid.Column="1"
+                    Margin="8,0,8,0"
+                    VerticalAlignment="Center"
+                    Text="{Binding ElementName=TwentyFourHourTimePicker, Path=SelectedTime}" />
+            </Grid>
+        </controls:ControlExample>
+    </StackPanel>
 </Page>

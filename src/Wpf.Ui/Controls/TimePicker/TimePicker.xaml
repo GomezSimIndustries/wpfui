@@ -5,6 +5,7 @@
     xmlns:system="clr-namespace:System;assembly=System.Runtime">
 
     <Thickness x:Key="TimePickerBorderThemeThickness">1,1,1,1</Thickness>
+    <system:Double x:Key="TimePickerSelectorHeight">220.0</system:Double>
 
     <Style x:Key="DefaultUiTimePickerStyle" TargetType="{x:Type controls:TimePicker}">
         <!--  Universal WPF UI focus  -->
@@ -53,37 +54,125 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
 
-                                <Grid x:Name="GridColumnHour" Grid.Column="0">
+                                <Grid
+                                    x:Name="GridColumnHour"
+                                    Grid.Column="0"
+                                    AutomationProperties.Name="{TemplateBinding HourPlaceholderText}">
                                     <TextBlock
                                         Margin="6"
                                         HorizontalAlignment="Center"
                                         Foreground="{TemplateBinding Foreground}"
-                                        Text="hour" />
+                                        Text="{TemplateBinding HourText}" />
                                 </Grid>
                                 <Border
                                     x:Name="GridColumnMinute"
                                     Grid.Column="1"
+                                    AutomationProperties.Name="{TemplateBinding MinutePlaceholderText}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="1,0,1,0">
                                     <TextBlock
                                         Margin="6"
                                         HorizontalAlignment="Center"
                                         Foreground="{TemplateBinding Foreground}"
-                                        Text="minute" />
+                                        Text="{TemplateBinding MinuteText}" />
                                 </Border>
                                 <Grid x:Name="GridColumnType" Grid.Column="2">
                                     <TextBlock
                                         Margin="6"
                                         HorizontalAlignment="Center"
                                         Foreground="{TemplateBinding Foreground}"
-                                        Text="AM" />
+                                        Text="{TemplateBinding DesignatorText}" />
                                 </Grid>
                             </Grid>
                         </Border>
 
-                        <Popup x:Name="TimePickerPopup">
-                            <Border>
-                                <TextBlock Text="Todo" />
+                        <Popup
+                            x:Name="PART_Popup"
+                            VerticalAlignment="Center"
+                            AllowsTransparency="True"
+                            Focusable="False"
+                            IsOpen="{Binding IsTimePickerOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                            Placement="Bottom"
+                            PlacementTarget="{Binding ElementName=ContentBorder}"
+                            PopupAnimation="None"
+                            StaysOpen="False"
+                            VerticalOffset="1">
+                            <Border
+                                x:Name="PopupBorder"
+                                MinWidth="{Binding ActualWidth, ElementName=ContentBorder}"
+                                Padding="0"
+                                Background="{DynamicResource ComboBoxDropDownBackground}"
+                                BorderBrush="{DynamicResource ComboBoxDropDownBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource PopupCornerRadius}"
+                                SnapsToDevicePixels="True">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Grid Grid.Row="0" Height="{StaticResource TimePickerSelectorHeight}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <ListBox
+                                            x:Name="PART_HourSelector"
+                                            Grid.Column="0"
+                                            AutomationProperties.Name="{TemplateBinding HourPlaceholderText}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            ItemsSource="{TemplateBinding HourItems}" />
+                                        <ListBox
+                                            x:Name="PART_MinuteSelector"
+                                            Grid.Column="1"
+                                            AutomationProperties.Name="{TemplateBinding MinutePlaceholderText}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            ItemsSource="{TemplateBinding MinuteItems}" />
+                                        <ListBox
+                                            x:Name="PART_DesignatorSelector"
+                                            Grid.Column="2"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            ItemsSource="{TemplateBinding DesignatorItems}" />
+                                    </Grid>
+
+                                    <Border
+                                        Grid.Row="1"
+                                        Padding="4"
+                                        BorderBrush="{DynamicResource ComboBoxDropDownBorderBrush}"
+                                        BorderThickness="0,1,0,0">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <Button
+                                                x:Name="PART_AcceptButton"
+                                                Grid.Column="0"
+                                                Margin="4"
+                                                HorizontalAlignment="Stretch"
+                                                AutomationProperties.Name="{TemplateBinding AcceptButtonText}"
+                                                ToolTip="{TemplateBinding AcceptButtonText}">
+                                                <controls:SymbolIcon Symbol="Checkmark24" />
+                                            </Button>
+                                            <Button
+                                                x:Name="PART_DismissButton"
+                                                Grid.Column="1"
+                                                Margin="4"
+                                                HorizontalAlignment="Stretch"
+                                                AutomationProperties.Name="{TemplateBinding DismissButtonText}"
+                                                ToolTip="{TemplateBinding DismissButtonText}">
+                                                <controls:SymbolIcon Symbol="Dismiss24" />
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
                             </Border>
                         </Popup>
                     </Grid>
@@ -103,7 +192,8 @@
                             <Setter Property="Foreground" Value="{DynamicResource TimePickerButtonForegroundPressed}" />
                         </Trigger>
                         <Trigger Property="ClockIdentifier" Value="Clock24Hour">
-                            <Setter TargetName="GridColumnType" Property="Visibility" Value="Hidden" />
+                            <Setter TargetName="GridColumnType" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="PART_DesignatorSelector" Property="Visibility" Value="Collapsed" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

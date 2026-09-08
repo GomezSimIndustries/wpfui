@@ -3,6 +3,9 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+
 // ReSharper disable once CheckNamespace
 namespace Wpf.Ui.Controls;
 
@@ -13,8 +16,28 @@ namespace Wpf.Ui.Controls;
 /// The clock system default and every string the columns display are resolved from
 /// <see cref="CultureInfo.CurrentCulture"/> as it stands when the instance is constructed.
 /// </remarks>
-public class TimePicker : System.Windows.Controls.Primitives.ButtonBase
+[TemplatePart(Name = TemplateElementPopup, Type = typeof(Popup))]
+[TemplatePart(Name = TemplateElementHourSelector, Type = typeof(Selector))]
+[TemplatePart(Name = TemplateElementMinuteSelector, Type = typeof(Selector))]
+[TemplatePart(Name = TemplateElementDesignatorSelector, Type = typeof(Selector))]
+[TemplatePart(Name = TemplateElementAcceptButton, Type = typeof(ButtonBase))]
+[TemplatePart(Name = TemplateElementDismissButton, Type = typeof(ButtonBase))]
+public class TimePicker : ButtonBase
 {
+    private const string TemplateElementPopup = "PART_Popup";
+
+    private const string TemplateElementHourSelector = "PART_HourSelector";
+
+    private const string TemplateElementMinuteSelector = "PART_MinuteSelector";
+
+    private const string TemplateElementDesignatorSelector = "PART_DesignatorSelector";
+
+    private const string TemplateElementAcceptButton = "PART_AcceptButton";
+
+    private const string TemplateElementDismissButton = "PART_DismissButton";
+
+    private const int AfternoonDesignatorIndex = 1;
+
     private const int LowestMinuteIncrement = 1;
 
     private const int HighestMinuteIncrement = 59;
@@ -66,6 +89,33 @@ public class TimePicker : System.Windows.Controls.Primitives.ButtonBase
         typeof(TimePicker),
         new PropertyMetadata(ClockIdentifier.Clock24Hour, OnClockIdentifierChanged)
     );
+
+    /// <summary>Identifies the <see cref="IsTimePickerOpen"/> dependency property.</summary>
+    public static readonly DependencyProperty IsTimePickerOpenProperty =
+        DependencyProperty.Register(
+            nameof(IsTimePickerOpen),
+            typeof(bool),
+            typeof(TimePicker),
+            new PropertyMetadata(false, OnIsTimePickerOpenChanged)
+        );
+
+    /// <summary>Identifies the <see cref="AcceptButtonText"/> dependency property.</summary>
+    public static readonly DependencyProperty AcceptButtonTextProperty =
+        DependencyProperty.Register(
+            nameof(AcceptButtonText),
+            typeof(string),
+            typeof(TimePicker),
+            new PropertyMetadata("Accept")
+        );
+
+    /// <summary>Identifies the <see cref="DismissButtonText"/> dependency property.</summary>
+    public static readonly DependencyProperty DismissButtonTextProperty =
+        DependencyProperty.Register(
+            nameof(DismissButtonText),
+            typeof(string),
+            typeof(TimePicker),
+            new PropertyMetadata("Dismiss")
+        );
 
     /// <summary>Identifies the <see cref="HourPlaceholderText"/> dependency property.</summary>
     public static readonly DependencyProperty HourPlaceholderTextProperty =
@@ -159,6 +209,18 @@ public class TimePicker : System.Windows.Controls.Primitives.ButtonBase
 
     private readonly CultureInfo _culture;
 
+    private Popup? _popup;
+
+    private Selector? _hourSelector;
+
+    private Selector? _minuteSelector;
+
+    private Selector? _designatorSelector;
+
+    private ButtonBase? _acceptButton;
+
+    private ButtonBase? _dismissButton;
+
     private bool _synchronizing;
 
     /// <summary>
@@ -174,6 +236,8 @@ public class TimePicker : System.Windows.Controls.Primitives.ButtonBase
         RebuildMinuteItems();
         RebuildDesignatorItems();
         UpdateDisplayText();
+
+        Unloaded += OnTimePickerUnloaded;
     }
 
     /// <summary>
@@ -230,6 +294,34 @@ public class TimePicker : System.Windows.Controls.Primitives.ButtonBase
     }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the selection popup is currently shown.
+    /// </summary>
+    [Bindable(true)]
+    public bool IsTimePickerOpen
+    {
+        get => (bool)GetValue(IsTimePickerOpenProperty);
+        set => SetValue(IsTimePickerOpenProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the accessible name of the button that commits the popup selection.
+    /// </summary>
+    public string AcceptButtonText
+    {
+        get => (string)GetValue(AcceptButtonTextProperty);
+        set => SetValue(AcceptButtonTextProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the accessible name of the button that closes the popup without committing.
+    /// </summary>
+    public string DismissButtonText
+    {
+        get => (string)GetValue(DismissButtonTextProperty);
+        set => SetValue(DismissButtonTextProperty, value);
+    }
+
+    /// <summary>
     /// Gets or sets the text the hour column shows while nothing is selected.
     /// </summary>
     public string HourPlaceholderText
@@ -278,6 +370,57 @@ public class TimePicker : System.Windows.Controls.Primitives.ButtonBase
     /// </summary>
     public IReadOnlyList<string> DesignatorItems =>
         (IReadOnlyList<string>)GetValue(DesignatorItemsProperty);
+
+    /// <inheritdoc />
+    public override void OnApplyTemplate()
+    {
+        base.OnApplyTemplate();
+
+        DetachTemplateParts();
+
+        _popup = GetTemplateChild(TemplateElementPopup) as Popup;
+        _hourSelector = GetTemplateChild(TemplateElementHourSelector) as Selector;
+        _minuteSelector = GetTemplateChild(TemplateElementMinuteSelector) as Selector;
+        _designatorSelector = GetTemplateChild(TemplateElementDesignatorSelector) as Selector;
+        _acceptButton = GetTemplateChild(TemplateElementAcceptButton) as ButtonBase;
+        _dismissButton = GetTemplateChild(TemplateElementDismissButton) as ButtonBase;
+
+        if (_popup is not null)
+        {
+            _popup.Opened += OnPopupOpened;
+            _popup.PreviewKeyDown += OnPopupPreviewKeyDown;
+        }
+
+        if (_acceptButton is not null)
+        {
+            _acceptButton.Click += OnAcceptButtonClick;
+        }
+
+        if (_dismissButton is not null)
+        {
+            _dismissButton.Click += OnDismissButtonClick;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnClick()
+    {
+        base.OnClick();
+
+        SetCurrentValue(IsTimePickerOpenProperty, !IsTimePickerOpen);
+    }
+
+    /// <summary>Moves keyboard focus into the hour column once the popup is shown.</summary>
+    protected virtual void OnPopupOpened(object? sender, EventArgs e)
+    {
+        if (_hourSelector is null)
+        {
+            return;
+        }
+
+        _ = _hourSelector.Focus();
+        _ = Keyboard.Focus(_hourSelector);
+    }
 
     /// <summary>Returns the clock system that the culture's short time pattern writes.</summary>
     internal static ClockIdentifier ResolveClockIdentifier(CultureInfo culture)
@@ -407,6 +550,123 @@ public class TimePicker : System.Windows.Controls.Primitives.ButtonBase
     )
     {
         ((TimePicker)d).UpdateDisplayText();
+    }
+
+    private static void OnIsTimePickerOpenChanged(
+        DependencyObject d,
+        DependencyPropertyChangedEventArgs e
+    )
+    {
+        if ((bool)e.NewValue)
+        {
+            ((TimePicker)d).SeedSelectors();
+        }
+    }
+
+    private void DetachTemplateParts()
+    {
+        if (_popup is not null)
+        {
+            _popup.Opened -= OnPopupOpened;
+            _popup.PreviewKeyDown -= OnPopupPreviewKeyDown;
+        }
+
+        if (_acceptButton is not null)
+        {
+            _acceptButton.Click -= OnAcceptButtonClick;
+        }
+
+        if (_dismissButton is not null)
+        {
+            _dismissButton.Click -= OnDismissButtonClick;
+        }
+    }
+
+    private void OnTimePickerUnloaded(object sender, RoutedEventArgs e)
+    {
+        SetCurrentValue(IsTimePickerOpenProperty, false);
+    }
+
+    private void OnPopupPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Enter:
+                CommitSelection();
+                e.Handled = true;
+                break;
+
+            case Key.Escape:
+                SetCurrentValue(IsTimePickerOpenProperty, false);
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private void OnAcceptButtonClick(object sender, RoutedEventArgs e)
+    {
+        CommitSelection();
+        e.Handled = true;
+    }
+
+    private void OnDismissButtonClick(object sender, RoutedEventArgs e)
+    {
+        SetCurrentValue(IsTimePickerOpenProperty, false);
+        e.Handled = true;
+    }
+
+    private void SeedSelectors()
+    {
+        TimeSpan? selected = SelectedTime;
+        var hour = selected?.Hours ?? 0;
+        var minute = selected?.Minutes ?? 0;
+
+        _hourSelector?.SetCurrentValue(
+            Selector.SelectedIndexProperty,
+            ClockIdentifier == ClockIdentifier.Clock12Hour ? hour % HoursPerHalfDay : hour
+        );
+
+        _minuteSelector?.SetCurrentValue(
+            Selector.SelectedIndexProperty,
+            Math.Min(minute / MinuteIncrement, Math.Max(_minuteSelector.Items.Count - 1, 0))
+        );
+
+        _designatorSelector?.SetCurrentValue(
+            Selector.SelectedIndexProperty,
+            hour < HoursPerHalfDay ? 0 : AfternoonDesignatorIndex
+        );
+    }
+
+    private void CommitSelection()
+    {
+        SetCurrentValue(
+            SelectedTimeProperty,
+            (TimeSpan?)new TimeSpan(ReadSelectedHour(), ReadSelectedMinute(), 0)
+        );
+        SetCurrentValue(IsTimePickerOpenProperty, false);
+    }
+
+    private int ReadSelectedHour()
+    {
+        var index = Math.Max(_hourSelector?.SelectedIndex ?? 0, 0);
+
+        if (ClockIdentifier != ClockIdentifier.Clock12Hour)
+        {
+            return Math.Min(index, HoursPerDay - 1);
+        }
+
+        var clockHour = index % HoursPerHalfDay;
+
+        return _designatorSelector?.SelectedIndex == AfternoonDesignatorIndex
+            ? clockHour + HoursPerHalfDay
+            : clockHour;
+    }
+
+    private int ReadSelectedMinute()
+    {
+        var index = Math.Max(_minuteSelector?.SelectedIndex ?? 0, 0);
+
+        return Math.Min(index * MinuteIncrement, MinutesPerHour - 1);
     }
 
     private void SynchronizeSelectedTime(TimeSpan value)

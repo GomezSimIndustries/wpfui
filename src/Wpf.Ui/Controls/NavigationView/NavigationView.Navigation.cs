@@ -299,14 +299,14 @@ public partial class NavigationView
     {
         var navigationViewItem = new NavigationViewItem(pageType);
 
-        // Try to get a title from the page instance for the breadcrumb
+        // Resolve the page once and reuse it both for the breadcrumb title and for display
         var pageInstance = GetNavigationItemInstance(navigationViewItem);
         if (pageInstance is Page page && !string.IsNullOrEmpty(page.Title))
         {
             navigationViewItem.Content = page.Title;
         }
 
-        if (!NavigateInternal(navigationViewItem, dataContext, addToNavigationStack))
+        if (!NavigateInternal(navigationViewItem, dataContext, addToNavigationStack, preResolvedPageInstance: pageInstance))
         {
             return false;
         }
@@ -322,7 +322,8 @@ public partial class NavigationView
         object? dataContext = null,
         bool addToNavigationStack = false,
         bool isBackwardsNavigated = false,
-        bool isForwardNavigated = false
+        bool isForwardNavigated = false,
+        object? preResolvedPageInstance = null
     )
     {
         if (NavigationStack.Count > 0 && NavigationStack[^1] == viewItem)
@@ -333,7 +334,7 @@ public partial class NavigationView
         // Use NavigationViewItem's TargetDataContext as fallback if no dataContext provided
         dataContext ??= viewItem.TargetDataContext;
 
-        var pageInstance = GetNavigationItemInstance(viewItem);
+        var pageInstance = preResolvedPageInstance ?? GetNavigationItemInstance(viewItem);
 
         if (OnNavigating(pageInstance))
         {

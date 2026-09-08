@@ -21,10 +21,7 @@ namespace $safeprojectname$
         private static readonly IHost _host = Host
             .CreateDefaultBuilder()
             .ConfigureAppConfiguration(c => { c.SetBasePath(Path.GetDirectoryName(AppContext.BaseDirectory)); })
-            .ConfigureServices((context, services) =>
-            {
-                throw new NotImplementedException("No service or window was registered.");
-            }).Build();
+            .ConfigureServices((context, services) => { }).Build();
 
         /// <summary>
         /// Gets services.

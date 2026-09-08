@@ -256,7 +256,11 @@ public class TransitionAnimationProviderTests
             }
         }
 
-        WpfTestHost.Invoke(() => descriptor.AddValueChanged(element, OnRenderTransformChanged));
+        WpfTestHost.Invoke(() =>
+        {
+            descriptor.AddValueChanged(element, OnRenderTransformChanged);
+            OnRenderTransformChanged(element, EventArgs.Empty);
+        });
 
         try
         {

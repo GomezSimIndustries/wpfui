@@ -32,7 +32,7 @@ public class BreadcrumbBarReloadTrackingTests
     [Fact]
     public void Reload_AfterDetachAndReinsert_MovesIsLastToTheItemAddedAfterReload()
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var (window, bar) = CreateHostedBreadcrumbBar("Documents", "Reports", "Q3");
 
@@ -59,7 +59,7 @@ public class BreadcrumbBarReloadTrackingTests
     [Fact]
     public void Reload_AfterDetachAndReinsert_MovesIsLastWhenTheCurrentLastItemIsRemoved()
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var (window, bar) = CreateHostedBreadcrumbBar("Documents", "Reports", "Q3");
 
@@ -83,7 +83,7 @@ public class BreadcrumbBarReloadTrackingTests
     [Fact]
     public void RepeatedReloadCycles_LeaveExactlyOneItemMarkedLast()
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var (window, bar) = CreateHostedBreadcrumbBar("Documents", "Reports", "Q3");
 
@@ -111,7 +111,7 @@ public class BreadcrumbBarReloadTrackingTests
     [Fact]
     public void Loaded_WithAnItemWhoseContainerIsNotYetGenerated_DoesNotThrow()
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var bar = new Wpf.Ui.Controls.BreadcrumbBar();
             bar.Items.Add("Documents");

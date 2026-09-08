@@ -45,7 +45,7 @@ public class BreadcrumbBarCommandInvocationTests
     [InlineData(CommandAcceptance.Neither)]
     public void ClickingAnItem_ExecutesTheCommandAtMostOnceWithTheContractedArgument(CommandAcceptance acceptance)
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var item = "Documents";
             var (window, bar) = CreateHostedBreadcrumbBar(item);
@@ -69,7 +69,7 @@ public class BreadcrumbBarCommandInvocationTests
     [Fact]
     public void ClickingAnItem_RaisesItemClickedExactlyOnceRegardlessOfCommandOutcome()
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var item = "Documents";
             var (window, bar) = CreateHostedBreadcrumbBar(item);
@@ -95,7 +95,7 @@ public class BreadcrumbBarCommandInvocationTests
     [Fact]
     public void KeyboardActivation_OnTheRealItemTemplate_ExecutesTheCommandExactlyOnceWithTheClickedItem()
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var item = "Documents";
             var (window, bar) = CreateHostedBreadcrumbBar(item, "Reports");

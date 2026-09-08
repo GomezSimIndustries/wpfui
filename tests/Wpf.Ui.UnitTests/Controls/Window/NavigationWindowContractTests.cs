@@ -15,7 +15,7 @@ public sealed class NavigationWindowContractTests
     [Fact]
     public void ExplicitGetNavigation_ReturnsTheSameControlAsThePublicMethod()
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var window = new FixtureNavigationWindow();
             INavigationWindow navigationWindow = window;
@@ -27,7 +27,7 @@ public sealed class NavigationWindowContractTests
     [Fact]
     public void SetServiceProvider_ResolvesPagesThroughTheProvidedServiceProvider()
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var window = new FixtureNavigationWindow();
             INavigationWindow navigationWindow = window;

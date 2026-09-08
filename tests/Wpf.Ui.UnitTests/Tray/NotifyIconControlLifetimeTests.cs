@@ -6,6 +6,7 @@
 using System.Runtime.CompilerServices;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Wpf.Ui.Tray.Controls;
 using Wpf.Ui.UnitTests.TestHelpers;
 
@@ -16,37 +17,41 @@ public sealed class NotifyIconControlLifetimeTests
     [Fact]
     public void MenuSetToNull_AllowsThePreviousContextMenuToBeCollected()
     {
-        StaThread.Run(() =>
+        WeakReference weakMenu = WpfTestHost.Invoke(() =>
         {
-            WeakReference weakMenu = CreateNotifyIconWithMenuThenClearIt();
-
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-
-            Assert.False(weakMenu.IsAlive);
+            WeakReference weak = CreateNotifyIconWithMenuThenClearIt();
+            Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.Background);
+            return weak;
         });
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(weakMenu.IsAlive);
     }
 
     [Fact]
     public void Menu_ReplacedWithANewContextMenu_AllowsThePreviousOneToBeCollected()
     {
-        StaThread.Run(() =>
+        WeakReference weakFirstMenu = WpfTestHost.Invoke(() =>
         {
-            WeakReference weakFirstMenu = CreateNotifyIconAndReplaceMenu();
-
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-
-            Assert.False(weakFirstMenu.IsAlive);
+            WeakReference weak = CreateNotifyIconAndReplaceMenu();
+            Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.Background);
+            return weak;
         });
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(weakFirstMenu.IsAlive);
     }
 
     [Fact]
     public void Dispose_CalledTwice_DoesNotThrowAndStaysUnregistered()
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var notifyIcon = new NotifyIcon();
 
@@ -62,7 +67,7 @@ public sealed class NotifyIconControlLifetimeTests
     [Fact]
     public void OnRender_AfterDispose_DoesNotAttemptToReregister()
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var notifyIcon = new TestableNotifyIcon();
             notifyIcon.Dispose();

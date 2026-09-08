@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows.Threading;
 using Wpf.Ui.Controls;
 using Wpf.Ui.UnitTests.TestHelpers;
 
@@ -33,7 +34,7 @@ public class NavigationViewMenuItemsSourceTests
     [MemberData(nameof(AllSourceKinds))]
     public void ReplacingSource_DetachesThePreviousSourceAndAttachesTheNewSourceExactlyOnce(SourceKind kind)
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var navigationView = new NavigationView();
             var first = new RecordingObservableSource("a");
@@ -53,7 +54,7 @@ public class NavigationViewMenuItemsSourceTests
     [MemberData(nameof(AllSourceKinds))]
     public void MutatingTheReplacedSource_NoLongerChangesTheCurrentDestinationList(SourceKind kind)
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var navigationView = new NavigationView();
             var first = new RecordingObservableSource("a");
@@ -72,7 +73,7 @@ public class NavigationViewMenuItemsSourceTests
     [MemberData(nameof(AllSourceKinds))]
     public void SettingSourceToNullThenReassigning_DetachesAndReattachesCleanly(SourceKind kind)
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var navigationView = new NavigationView();
             var first = new RecordingObservableSource("a");
@@ -99,7 +100,7 @@ public class NavigationViewMenuItemsSourceTests
     [MemberData(nameof(AllSourceKinds))]
     public void CurrentSourceCollectionActions_StillPropagateToTheDestinationList(SourceKind kind)
     {
-        StaThread.Run(() =>
+        WpfTestHost.Invoke(() =>
         {
             var navigationView = new NavigationView();
             var source = new RecordingObservableSource("a", "b", "c");
@@ -128,19 +129,21 @@ public class NavigationViewMenuItemsSourceTests
     [MemberData(nameof(AllSourceKinds))]
     public void ReplacingSource_AllowsTheNavigationViewToBeCollectedWhileThePreviousSourceSurvives(SourceKind kind)
     {
-        StaThread.Run(() =>
+        var first = new RecordingObservableSource("a");
+
+        WeakReference navigationViewRef = WpfTestHost.Invoke(() =>
         {
-            var first = new RecordingObservableSource("a");
-
-            WeakReference navigationViewRef = CreateNavigationViewWithReplacedSource(first, kind);
-
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-
-            Assert.False(navigationViewRef.IsAlive);
-            GC.KeepAlive(first);
+            WeakReference weak = CreateNavigationViewWithReplacedSource(first, kind);
+            Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.Background);
+            return weak;
         });
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(navigationViewRef.IsAlive);
+        GC.KeepAlive(first);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

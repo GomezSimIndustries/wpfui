@@ -16,29 +16,20 @@ public static class WpfTestHost
 {
     private static readonly object Lock = new();
 
-    /// <summary>Serializes every construction of WPF controls against the shared dispatcher, whether it runs there or on a dedicated STA thread.</summary>
-    internal static readonly object ExclusivityGate = new();
-
     private static Dispatcher? _dispatcher;
 
     /// <summary>Runs an action on the shared test dispatcher and blocks until it completes.</summary>
     public static void Invoke(Action action)
     {
         EnsureInitialized();
-        lock (ExclusivityGate)
-        {
-            _dispatcher!.Invoke(action);
-        }
+        _dispatcher!.Invoke(action);
     }
 
     /// <summary>Runs a function on the shared test dispatcher and returns its result.</summary>
     public static T Invoke<T>(Func<T> func)
     {
         EnsureInitialized();
-        lock (ExclusivityGate)
-        {
-            return _dispatcher!.Invoke(func);
-        }
+        return _dispatcher!.Invoke(func);
     }
 
     /// <summary>Creates a window positioned off the visible desktop, for use as an owner in window lifecycle tests.</summary>

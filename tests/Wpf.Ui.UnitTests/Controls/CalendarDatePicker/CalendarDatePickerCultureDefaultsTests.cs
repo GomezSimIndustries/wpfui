@@ -14,20 +14,12 @@ public class CalendarDatePickerCultureDefaultsTests
     [Fact]
     public void FirstDayOfWeek_WithNoExplicitValue_ResolvesFromTheConstructingCultureEachTime()
     {
-        DayOfWeek? enUsDefault = null;
-        DayOfWeek? frFrDefault = null;
-
-        StaThread.Run(() =>
-        {
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
-            enUsDefault = new CalendarDatePickerControl().FirstDayOfWeek;
-        });
-
-        StaThread.Run(() =>
-        {
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
-            frFrDefault = new CalendarDatePickerControl().FirstDayOfWeek;
-        });
+        DayOfWeek enUsDefault = WpfTestHost.Invoke(
+            () => WithCulture("en-US", () => new CalendarDatePickerControl().FirstDayOfWeek)
+        );
+        DayOfWeek frFrDefault = WpfTestHost.Invoke(
+            () => WithCulture("fr-FR", () => new CalendarDatePickerControl().FirstDayOfWeek)
+        );
 
         Assert.Equal(DayOfWeek.Sunday, enUsDefault);
         Assert.Equal(DayOfWeek.Monday, frFrDefault);
@@ -36,14 +28,12 @@ public class CalendarDatePickerCultureDefaultsTests
     [Fact]
     public void FirstDayOfWeek_SetExplicitly_IsNotReplacedByTheCultureDefault()
     {
-        DayOfWeek? explicitValue = null;
-
-        StaThread.Run(() =>
-        {
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
-            var picker = new CalendarDatePickerControl { FirstDayOfWeek = DayOfWeek.Wednesday };
-            explicitValue = picker.FirstDayOfWeek;
-        });
+        DayOfWeek explicitValue = WpfTestHost.Invoke(
+            () => WithCulture(
+                "fr-FR",
+                () => new CalendarDatePickerControl { FirstDayOfWeek = DayOfWeek.Wednesday }.FirstDayOfWeek
+            )
+        );
 
         Assert.Equal(DayOfWeek.Wednesday, explicitValue);
     }
@@ -51,20 +41,41 @@ public class CalendarDatePickerCultureDefaultsTests
     [Fact]
     public void FirstDayOfWeek_SetExplicitlyToTheAmbientCultureDefault_SurvivesAFurtherCultureChange()
     {
-        DayOfWeek? beforeChange = null;
-        DayOfWeek? afterChange = null;
-
-        StaThread.Run(() =>
+        (DayOfWeek beforeChange, DayOfWeek afterChange) = WpfTestHost.Invoke(() =>
         {
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
-            var picker = new CalendarDatePickerControl { FirstDayOfWeek = DayOfWeek.Monday };
-            beforeChange = picker.FirstDayOfWeek;
+            CultureInfo previous = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+                var picker = new CalendarDatePickerControl { FirstDayOfWeek = DayOfWeek.Monday };
+                DayOfWeek before = picker.FirstDayOfWeek;
 
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
-            afterChange = picker.FirstDayOfWeek;
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+                DayOfWeek after = picker.FirstDayOfWeek;
+
+                return (before, after);
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = previous;
+            }
         });
 
         Assert.Equal(DayOfWeek.Monday, beforeChange);
         Assert.Equal(DayOfWeek.Monday, afterChange);
+    }
+
+    private static T WithCulture<T>(string cultureName, Func<T> func)
+    {
+        CultureInfo previous = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+        try
+        {
+            return func();
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
     }
 }

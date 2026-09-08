@@ -39,6 +39,15 @@ public static class ApplicationThemeManager
 
     internal const string ThemesDictionaryPath = "pack://application:,,,/Wpf.Ui;component/Resources/Theme/";
 
+    private static readonly string[] HighContrastThemeDictionaryTokens =
+    {
+        "highcontrast",
+        "hc1",
+        "hc2",
+        "hcblack",
+        "hcwhite",
+    };
+
     /// <summary>
     /// Event triggered when the application's theme is changed.
     /// </summary>
@@ -93,14 +102,7 @@ public static class ApplicationThemeManager
                 themeDictionaryName = "Dark";
                 break;
             case ApplicationTheme.HighContrast:
-                themeDictionaryName = GetSystemTheme() switch
-                {
-                    SystemTheme.HC1 => "HC1",
-                    SystemTheme.HC2 => "HC2",
-                    SystemTheme.HCBlack => "HCBlack",
-                    SystemTheme.HCWhite => "HCWhite",
-                    _ => "HCWhite",
-                };
+                themeDictionaryName = ResolveHighContrastThemeDictionaryName();
                 break;
         }
 
@@ -231,6 +233,30 @@ public static class ApplicationThemeManager
     }
 
     /// <summary>
+    /// Clears the cached application theme.
+    /// </summary>
+    internal static void ResetCachedApplicationTheme()
+    {
+        _cachedApplicationTheme = ApplicationTheme.Unknown;
+    }
+
+    /// <summary>
+    /// Resolves the packaged high-contrast theme dictionary name for the current system classification.
+    /// </summary>
+    /// <remarks>Falls back to <c>HCWhite</c> when the system is not currently reporting one of the four packaged variants.</remarks>
+    internal static string ResolveHighContrastThemeDictionaryName()
+    {
+        return GetSystemTheme() switch
+        {
+            SystemTheme.HC1 => "HC1",
+            SystemTheme.HC2 => "HC2",
+            SystemTheme.HCBlack => "HCBlack",
+            SystemTheme.HCWhite => "HCWhite",
+            _ => "HCWhite",
+        };
+    }
+
+    /// <summary>
     /// Gets currently set system theme.
     /// </summary>
     /// <returns><see cref="SystemTheme.Unknown"/> if something goes wrong.</returns>
@@ -319,9 +345,25 @@ public static class ApplicationThemeManager
             _cachedApplicationTheme = ApplicationTheme.Dark;
         }
 
-        if (themeUri.Contains("highcontrast", StringComparison.OrdinalIgnoreCase))
+        if (IsHighContrastThemeDictionaryUri(themeUri))
         {
             _cachedApplicationTheme = ApplicationTheme.HighContrast;
         }
+    }
+
+    /// <summary>
+    /// Determines whether a theme dictionary <see cref="Uri"/> names the generic high-contrast entry or one of the packaged variants.
+    /// </summary>
+    private static bool IsHighContrastThemeDictionaryUri(string themeUri)
+    {
+        foreach (string token in HighContrastThemeDictionaryTokens)
+        {
+            if (themeUri.Contains(token, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

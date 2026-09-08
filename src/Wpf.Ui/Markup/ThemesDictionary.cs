@@ -48,7 +48,7 @@ public class ThemesDictionary : ResourceDictionary
         var themeName = selectedApplicationTheme switch
         {
             ApplicationTheme.Dark => "Dark",
-            ApplicationTheme.HighContrast => "HighContrast",
+            ApplicationTheme.HighContrast => ApplicationThemeManager.ResolveHighContrastThemeDictionaryName(),
             _ => "Light",
         };
 

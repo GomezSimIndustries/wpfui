@@ -7,6 +7,7 @@ using Wpf.Ui.Appearance;
 
 namespace Wpf.Ui.UnitTests.Appearance;
 
+[Collection("ThemeState")]
 public sealed class SystemThemeCacheRefreshTests : IDisposable
 {
     private readonly ISystemThemeSource _originalSource = SystemThemeManager.Source;

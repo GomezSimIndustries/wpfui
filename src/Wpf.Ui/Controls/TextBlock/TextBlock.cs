@@ -16,7 +16,7 @@ public class TextBlock : System.Windows.Controls.TextBlock
         nameof(FontTypographyStyle),
         typeof(Style),
         typeof(System.Windows.Controls.TextBlock),
-        new PropertyMetadata(default(Style))
+        new PropertyMetadata(default(Style), OnFontTypographyStyleChanged)
     );
 
     /// <summary>Identifies the <see cref="AppearanceForeground" /> dependency property.</summary>
@@ -24,7 +24,7 @@ public class TextBlock : System.Windows.Controls.TextBlock
         nameof(AppearanceForeground),
         typeof(Brush),
         typeof(System.Windows.Controls.TextBlock),
-        new PropertyMetadata(default(Brush))
+        new PropertyMetadata(default(Brush), OnAppearanceForegroundChanged)
     );
 
     /// <summary>Identifies the <see cref="FontTypography" /> dependency property.</summary>
@@ -97,10 +97,7 @@ public class TextBlock : System.Windows.Controls.TextBlock
         {
             if (args.NewValue is FontTypography fontTypography)
             {
-                tb.SetCurrentValue(
-                    FontTypographyStyleProperty,
-                    tb.TryFindResource(fontTypography.ToResourceValue())
-                );
+                tb.SetResourceReference(FontTypographyStyleProperty, fontTypography.ToResourceValue());
             }
             else
             {
@@ -118,10 +115,7 @@ public class TextBlock : System.Windows.Controls.TextBlock
         {
             if (args.NewValue is TextColor textColor)
             {
-                tb.SetCurrentValue(
-                    AppearanceForegroundProperty,
-                    tb.TryFindResource(textColor.ToResourceValue())
-                );
+                tb.SetResourceReference(AppearanceForegroundProperty, textColor.ToResourceValue());
             }
             else
             {
@@ -130,5 +124,16 @@ public class TextBlock : System.Windows.Controls.TextBlock
 
             tb.CoerceValue(ForegroundProperty);
         }
+    }
+
+    private static void OnFontTypographyStyleChanged(DependencyObject d, DependencyPropertyChangedEventArgs args)
+    {
+        d.CoerceValue(FontSizeProperty);
+        d.CoerceValue(FontWeightProperty);
+    }
+
+    private static void OnAppearanceForegroundChanged(DependencyObject d, DependencyPropertyChangedEventArgs args)
+    {
+        d.CoerceValue(ForegroundProperty);
     }
 }

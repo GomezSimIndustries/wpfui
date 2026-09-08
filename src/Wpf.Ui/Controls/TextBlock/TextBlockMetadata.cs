@@ -16,18 +16,16 @@ internal static class TextBlockMetadata
                 null,
                 static (d, value) =>
                 {
-                    if (d.GetValue(TextBlock.FontTypographyStyleProperty) is Style style)
+                    if (
+                        d.GetValue(TextBlock.FontTypographyStyleProperty) is Style style
+                        && TryGetInheritedSetterValue(
+                            style,
+                            System.Windows.Controls.TextBlock.FontSizeProperty,
+                            out object? setterValue
+                        )
+                    )
                     {
-                        foreach (SetterBase setterBase in style.Setters)
-                        {
-                            if (
-                                setterBase is Setter setter
-                                && setter.Property == System.Windows.Controls.TextBlock.FontSizeProperty
-                            )
-                            {
-                                return setter.Value;
-                            }
-                        }
+                        return setterValue;
                     }
 
                     return value;
@@ -42,18 +40,16 @@ internal static class TextBlockMetadata
                 null,
                 static (d, value) =>
                 {
-                    if (d.GetValue(TextBlock.FontTypographyStyleProperty) is Style style)
+                    if (
+                        d.GetValue(TextBlock.FontTypographyStyleProperty) is Style style
+                        && TryGetInheritedSetterValue(
+                            style,
+                            System.Windows.Controls.TextBlock.FontWeightProperty,
+                            out object? setterValue
+                        )
+                    )
                     {
-                        foreach (SetterBase setterBase in style.Setters)
-                        {
-                            if (
-                                setterBase is Setter setter
-                                && setter.Property == System.Windows.Controls.TextBlock.FontWeightProperty
-                            )
-                            {
-                                return setter.Value;
-                            }
-                        }
+                        return setterValue;
                     }
 
                     return value;
@@ -80,4 +76,22 @@ internal static class TextBlockMetadata
     }
 
     public static void Initialize() { }
+
+    private static bool TryGetInheritedSetterValue(Style? style, DependencyProperty property, out object? value)
+    {
+        for (Style? current = style; current is not null; current = current.BasedOn)
+        {
+            foreach (SetterBase setterBase in current.Setters)
+            {
+                if (setterBase is Setter setter && setter.Property == property)
+                {
+                    value = setter.Value;
+                    return true;
+                }
+            }
+        }
+
+        value = null;
+        return false;
+    }
 }

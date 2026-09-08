@@ -52,6 +52,7 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
     private Thickness? _resizeFrameBorderThickness;
     private Thickness? _windowChromeNonClientFrameThickness;
     private bool _borderBrushApplied = false;
+    private bool _themeChangeHooked;
     private Window? _oldWindow;
 
     public ApplicationTheme ApplicationTheme { get; set; } = ApplicationTheme.Unknown;
@@ -111,10 +112,15 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
     public ClientAreaBorder()
     {
         ApplicationTheme = ApplicationThemeManager.GetAppTheme();
-        ApplicationThemeManager.Changed += OnThemeChanged;
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
-    private void OnThemeChanged(ApplicationTheme currentApplicationTheme, Color systemAccent)
+    private void OnLoaded(object sender, RoutedEventArgs e) => AttachThemeChangeHook();
+
+    private void OnUnloaded(object sender, RoutedEventArgs e) => DetachThemeChangeHook();
+
+    protected virtual void OnThemeChanged(ApplicationTheme currentApplicationTheme, Color systemAccent)
     {
         ApplicationTheme = currentApplicationTheme;
 
@@ -134,7 +140,7 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
         if (_oldWindow is { } oldWindow)
         {
             oldWindow.StateChanged -= OnWindowStateChanged;
-            oldWindow.Closing -= OnWindowClosing;
+            oldWindow.Closed -= OnWindowClosed;
             DetachSettingsChangeHook(oldWindow);
         }
 
@@ -144,7 +150,8 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
         {
             newWindow.StateChanged -= OnWindowStateChanged; // Unsafe
             newWindow.StateChanged += OnWindowStateChanged;
-            newWindow.Closing += OnWindowClosing;
+            newWindow.Closed -= OnWindowClosed; // Unsafe
+            newWindow.Closed += OnWindowClosed;
             AttachSettingsChangeHook(newWindow);
         }
 
@@ -164,14 +171,39 @@ public class ClientAreaBorder : System.Windows.Controls.Border, IThemeControl
         ApplyPaddingForWindow(_oldWindow);
     }
 
-    private void OnWindowClosing(object? sender, CancelEventArgs e)
+    private void OnWindowClosed(object? sender, EventArgs e)
     {
-        ApplicationThemeManager.Changed -= OnThemeChanged;
         if (_oldWindow != null)
         {
-            _oldWindow.Closing -= OnWindowClosing;
+            _oldWindow.StateChanged -= OnWindowStateChanged;
+            _oldWindow.Closed -= OnWindowClosed;
             DetachSettingsChangeHook(_oldWindow);
         }
+
+        DetachThemeChangeHook();
+    }
+
+    private void AttachThemeChangeHook()
+    {
+        if (_themeChangeHooked)
+        {
+            return;
+        }
+
+        ApplicationTheme = ApplicationThemeManager.GetAppTheme();
+        ApplicationThemeManager.Changed += OnThemeChanged;
+        _themeChangeHooked = true;
+    }
+
+    private void DetachThemeChangeHook()
+    {
+        if (!_themeChangeHooked)
+        {
+            return;
+        }
+
+        ApplicationThemeManager.Changed -= OnThemeChanged;
+        _themeChangeHooked = false;
     }
 
     private void OnWindowStateChanged(object? sender, EventArgs e)

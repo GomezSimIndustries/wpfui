@@ -932,11 +932,10 @@ public partial class NavigationView
             return;
         }
 
-        if (e.NewValue is null && e.OldValue is AutoSuggestBox oldValue)
+        if (e.OldValue is AutoSuggestBox oldValue)
         {
             oldValue.SuggestionChosen -= navigationView.AutoSuggestBoxOnSuggestionChosen;
             oldValue.QuerySubmitted -= navigationView.AutoSuggestBoxOnQuerySubmitted;
-            return;
         }
 
         if (e.NewValue is not AutoSuggestBox autoSuggestBox)
@@ -964,12 +963,9 @@ public partial class NavigationView
             return;
         }
 
-        if (e.NewValue is null && e.OldValue is BreadcrumbBar oldValue)
+        if (e.OldValue is BreadcrumbBar oldValue)
         {
             oldValue.ItemClicked -= navigationView.BreadcrumbBarOnItemClicked;
-            {
-                return;
-            }
         }
 
         if (e.NewValue is not BreadcrumbBar breadcrumbBar)

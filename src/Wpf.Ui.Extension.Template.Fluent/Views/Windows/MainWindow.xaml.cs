@@ -52,14 +52,9 @@ namespace $safeprojectname$.Views.Windows
             Application.Current.Shutdown();
         }
 
-        INavigationView INavigationWindow.GetNavigation()
-        {
-            throw new NotImplementedException();
-        }
+        INavigationView INavigationWindow.GetNavigation() => RootNavigation;
 
-        public void SetServiceProvider(IServiceProvider serviceProvider)
-        {
-            throw new NotImplementedException();
-        }
+        public void SetServiceProvider(IServiceProvider serviceProvider) =>
+            RootNavigation.SetServiceProvider(serviceProvider);
     }
 }

@@ -415,11 +415,11 @@ public abstract class VirtualizingPanelBase : VirtualizingPanel, IScrollInfo
 
     /// <inheritdoc />
     public void PageLeft() =>
-        ScrollHorizontal(ScrollUnit == ScrollUnit.Pixel ? -ViewportHeight : GetPageLeftScrollAmount());
+        ScrollHorizontal(ScrollUnit == ScrollUnit.Pixel ? -ViewportWidth : GetPageLeftScrollAmount());
 
     /// <inheritdoc />
     public void PageRight() =>
-        ScrollHorizontal(ScrollUnit == ScrollUnit.Pixel ? ViewportHeight : GetPageRightScrollAmount());
+        ScrollHorizontal(ScrollUnit == ScrollUnit.Pixel ? ViewportWidth : GetPageRightScrollAmount());
 
     /// <inheritdoc />
     protected override void OnItemsChanged(object sender, ItemsChangedEventArgs args)
@@ -455,19 +455,15 @@ public abstract class VirtualizingPanelBase : VirtualizingPanel, IScrollInfo
             invalidateScrollInfo = true;
         }
 
-        if (ViewportHeight != 0 && VerticalOffset != 0 && VerticalOffset + ViewportHeight + 1 >= ExtentHeight)
-        {
-            Offset = new Point(Offset.X, extent.Height - availableSize.Height);
-            invalidateScrollInfo = true;
-        }
+        var maxHorizontalOffset = Math.Max(0, Extent.Width - Viewport.Width);
+        var maxVerticalOffset = Math.Max(0, Extent.Height - Viewport.Height);
+        var clampedOffset = new Point(
+            Math.Clamp(Offset.X, 0, maxHorizontalOffset),
+            Math.Clamp(Offset.Y, 0, maxVerticalOffset));
 
-        if (
-            ViewportWidth != 0
-            && HorizontalOffset != 0
-            && HorizontalOffset + ViewportWidth + 1 >= ExtentWidth
-        )
+        if (clampedOffset != Offset)
         {
-            Offset = new Point(extent.Width - availableSize.Width, Offset.Y);
+            Offset = clampedOffset;
             invalidateScrollInfo = true;
         }
 

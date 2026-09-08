@@ -57,12 +57,27 @@ internal static class Highlighter
     )
     {
         var paragraph = new Paragraph();
+
+        if (string.IsNullOrEmpty(code))
+        {
+            return paragraph;
+        }
+
         Regex rgx = new(GetPattern(language, code));
 
         bool lightTheme = IsLightTheme();
+        SolidColorBrush defaultBrush = lightTheme ? Brushes.CornflowerBlue : Brushes.Aqua;
+
+        int consumed = 0;
 
         foreach (Match match in rgx.Matches(code).Cast<Match>())
         {
+            // Preserve any text that fell between the previous match and this one.
+            if (match.Index > consumed)
+            {
+                paragraph.Inlines.Add(Line(code.Substring(consumed, match.Index - consumed), defaultBrush));
+            }
+
             foreach (object group in match.Groups)
             {
                 // Remove whole matches
@@ -158,11 +173,17 @@ internal static class Highlighter
                 }
                 else
                 {
-                    paragraph.Inlines.Add(
-                        Line(codeMatched.Value, lightTheme ? Brushes.CornflowerBlue : Brushes.Aqua)
-                    );
+                    paragraph.Inlines.Add(Line(codeMatched.Value, defaultBrush));
                 }
             }
+
+            consumed = match.Index + match.Length;
+        }
+
+        // Preserve any text that follows the last match.
+        if (consumed < code.Length)
+        {
+            paragraph.Inlines.Add(Line(code.Substring(consumed), defaultBrush));
         }
 
         return paragraph;

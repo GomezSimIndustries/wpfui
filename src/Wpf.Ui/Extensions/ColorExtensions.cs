@@ -308,7 +308,7 @@ public static class ColorExtensions
     {
         if (AlmostEquals(saturation, 0, 0.01f))
         {
-            var color = (int)(lightness * _byteMax);
+            var color = (int)(((lightness / 100f) * _byteMax) + 0.5f);
 
             return (color, color, color);
         }

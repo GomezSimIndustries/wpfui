@@ -12,6 +12,11 @@ namespace Wpf.Ui;
 /// </summary>
 public partial class TaskBarService : ITaskBarService
 {
+    /// <summary>
+    /// Gets or sets the gateway used to send taskbar progress requests.
+    /// </summary>
+    internal static INativeTaskBarProgressGateway ProgressGateway { get; set; } = TaskBarProgressGateway.Instance;
+
     private readonly Dictionary<IntPtr, TaskBarProgressState> _progressStates = [];
 
     /// <inheritdoc />
@@ -51,7 +56,15 @@ public partial class TaskBarService : ITaskBarService
             return false;
         }
 
-        return TaskBarProgress.SetState(window, taskBarProgressState);
+        bool result = ProgressGateway.SetState(window, taskBarProgressState);
+
+        if (result)
+        {
+            IntPtr windowHandle = new WindowInteropHelper(window).Handle;
+            StoreProgressState(windowHandle, taskBarProgressState);
+        }
+
+        return result;
     }
 
     /// <inheritdoc />
@@ -67,7 +80,15 @@ public partial class TaskBarService : ITaskBarService
             return false;
         }
 
-        return TaskBarProgress.SetValue(window, taskBarProgressState, current, total);
+        bool result = ProgressGateway.SetValue(window, taskBarProgressState, current, total);
+
+        if (result)
+        {
+            IntPtr windowHandle = new WindowInteropHelper(window).Handle;
+            StoreProgressState(windowHandle, taskBarProgressState);
+        }
+
+        return result;
     }
 
     /// <inheritdoc />
@@ -82,16 +103,23 @@ public partial class TaskBarService : ITaskBarService
 
         if (!_progressStates.TryGetValue(windowHandle, out TaskBarProgressState progressState))
         {
-            return TaskBarProgress.SetValue(window, TaskBarProgressState.Normal, current, total);
+            return ProgressGateway.SetValue(window, TaskBarProgressState.Normal, current, total);
         }
 
-        return TaskBarProgress.SetValue(window, progressState, current, total);
+        return ProgressGateway.SetValue(window, progressState, current, total);
     }
 
     /// <inheritdoc />
     public virtual bool SetState(IntPtr hWnd, TaskBarProgressState taskBarProgressState)
     {
-        return TaskBarProgress.SetState(hWnd, taskBarProgressState);
+        bool result = ProgressGateway.SetState(hWnd, taskBarProgressState);
+
+        if (result)
+        {
+            StoreProgressState(hWnd, taskBarProgressState);
+        }
+
+        return result;
     }
 
     /// <inheritdoc/>
@@ -102,7 +130,14 @@ public partial class TaskBarService : ITaskBarService
         int total
     )
     {
-        return TaskBarProgress.SetValue(hWnd, taskBarProgressState, current, total);
+        bool result = ProgressGateway.SetValue(hWnd, taskBarProgressState, current, total);
+
+        if (result)
+        {
+            StoreProgressState(hWnd, taskBarProgressState);
+        }
+
+        return result;
     }
 
     /// <inheritdoc />
@@ -110,9 +145,31 @@ public partial class TaskBarService : ITaskBarService
     {
         if (!_progressStates.TryGetValue(hWnd, out TaskBarProgressState progressState))
         {
-            return TaskBarProgress.SetValue(hWnd, TaskBarProgressState.Normal, current, total);
+            return ProgressGateway.SetValue(hWnd, TaskBarProgressState.Normal, current, total);
         }
 
-        return TaskBarProgress.SetValue(hWnd, progressState, current, total);
+        return ProgressGateway.SetValue(hWnd, progressState, current, total);
+    }
+
+    /// <summary>
+    /// Records the last successfully requested progress state for a window handle, dropping the entry once the state clears to <see cref="TaskBarProgressState.None"/>.
+    /// </summary>
+    /// <param name="hWnd">Window handle the state was requested for.</param>
+    /// <param name="taskBarProgressState">Progress state that was successfully requested.</param>
+    private void StoreProgressState(IntPtr hWnd, TaskBarProgressState taskBarProgressState)
+    {
+        if (hWnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        if (taskBarProgressState == TaskBarProgressState.None)
+        {
+            _ = _progressStates.Remove(hWnd);
+        }
+        else
+        {
+            _progressStates[hWnd] = taskBarProgressState;
+        }
     }
 }

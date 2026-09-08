@@ -3,6 +3,7 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using System.Runtime.CompilerServices;
 using System.Windows.Media.Animation;
 using Wpf.Ui.Hardware;
 
@@ -19,6 +20,9 @@ namespace Wpf.Ui.Animations;
 public static class TransitionAnimationProvider
 {
     private const double DecelerationRatio = 0.7D;
+
+    private static readonly ConditionalWeakTable<UIElement, TransientTranslationState> TransientTranslations =
+        new();
 
     /// <summary>
     /// Attempts to apply an animation effect while adding content to the frame.
@@ -87,31 +91,7 @@ public static class TransitionAnimationProvider
 
     private static void FadeInWithSlideTransition(UIElement animatedUiElement, Duration duration)
     {
-        var translateDoubleAnimation = new DoubleAnimation
-        {
-            Duration = duration,
-            DecelerationRatio = DecelerationRatio,
-            From = 30,
-            To = 0,
-        };
-
-        if (animatedUiElement.RenderTransform is not TranslateTransform)
-        {
-            animatedUiElement.SetCurrentValue(
-                UIElement.RenderTransformProperty,
-                new TranslateTransform(0, 0)
-            );
-        }
-
-        if (!animatedUiElement.RenderTransformOrigin.Equals(new Point(0.5, 0.5)))
-        {
-            animatedUiElement.SetCurrentValue(UIElement.RenderTransformOriginProperty, new Point(0.5, 0.5));
-        }
-
-        animatedUiElement.RenderTransform.BeginAnimation(
-            TranslateTransform.YProperty,
-            translateDoubleAnimation
-        );
+        AnimateTransientTranslate(animatedUiElement, TranslateTransform.YProperty, 30, duration);
 
         var opacityDoubleAnimation = new DoubleAnimation
         {
@@ -124,90 +104,90 @@ public static class TransitionAnimationProvider
         animatedUiElement.BeginAnimation(UIElement.OpacityProperty, opacityDoubleAnimation);
     }
 
-    private static void SlideBottomTransition(UIElement animatedUiElement, Duration duration)
+    private static void SlideBottomTransition(UIElement animatedUiElement, Duration duration) =>
+        AnimateTransientTranslate(animatedUiElement, TranslateTransform.YProperty, 30, duration);
+
+    private static void SlideRightTransition(UIElement animatedUiElement, Duration duration) =>
+        AnimateTransientTranslate(animatedUiElement, TranslateTransform.XProperty, 50, duration);
+
+    private static void SlideLeftTransition(UIElement animatedUiElement, Duration duration) =>
+        AnimateTransientTranslate(animatedUiElement, TranslateTransform.XProperty, -50, duration);
+
+    /// <summary>
+    /// Animates a transient offset on <paramref name="axisProperty"/> without disturbing the element's own <see cref="UIElement.RenderTransform"/>, restoring it once the animation completes or is superseded.
+    /// </summary>
+    private static void AnimateTransientTranslate(
+        UIElement animatedUiElement,
+        DependencyProperty axisProperty,
+        double from,
+        Duration duration
+    )
     {
+        var translate = BeginTransientTranslate(animatedUiElement, out var token);
+
         var translateDoubleAnimation = new DoubleAnimation
         {
             Duration = duration,
             DecelerationRatio = DecelerationRatio,
-            From = 30,
+            From = from,
             To = 0,
         };
 
-        if (animatedUiElement.RenderTransform is not TranslateTransform)
-        {
-            animatedUiElement.SetCurrentValue(
-                UIElement.RenderTransformProperty,
-                new TranslateTransform(0, 0)
-            );
-        }
+        translateDoubleAnimation.Completed += (_, _) => EndTransientTranslate(animatedUiElement, token);
 
-        if (!animatedUiElement.RenderTransformOrigin.Equals(new Point(0.5, 0.5)))
-        {
-            animatedUiElement.SetCurrentValue(UIElement.RenderTransformOriginProperty, new Point(0.5, 0.5));
-        }
-
-        animatedUiElement.RenderTransform.BeginAnimation(
-            TranslateTransform.YProperty,
-            translateDoubleAnimation
-        );
+        translate.BeginAnimation(axisProperty, translateDoubleAnimation);
     }
 
-    private static void SlideRightTransition(UIElement animatedUiElement, Duration duration)
+    /// <summary>
+    /// Wraps the element's current <see cref="UIElement.RenderTransform"/> in a group with an owned <see cref="TranslateTransform"/>, capturing the original transform for later restoration.
+    /// </summary>
+    /// <returns>The owned <see cref="TranslateTransform"/> to animate.</returns>
+    private static TranslateTransform BeginTransientTranslate(UIElement animatedUiElement, out int token)
     {
-        var translateDoubleAnimation = new DoubleAnimation
+        if (TransientTranslations.TryGetValue(animatedUiElement, out var existingState))
         {
-            Duration = duration,
-            DecelerationRatio = DecelerationRatio,
-            From = 50,
-            To = 0,
-        };
-
-        if (animatedUiElement.RenderTransform is not TranslateTransform)
-        {
-            animatedUiElement.SetCurrentValue(
-                UIElement.RenderTransformProperty,
-                new TranslateTransform(0, 0)
-            );
+            token = ++existingState.Token;
+            return existingState.Translate;
         }
 
-        if (!animatedUiElement.RenderTransformOrigin.Equals(new Point(0.5, 0.5)))
-        {
-            animatedUiElement.SetCurrentValue(UIElement.RenderTransformOriginProperty, new Point(0.5, 0.5));
-        }
+        var baseTransform = animatedUiElement.RenderTransform ?? Transform.Identity;
+        var translate = new TranslateTransform(0, 0);
+        var group = new TransformGroup();
+        group.Children.Add(baseTransform);
+        group.Children.Add(translate);
 
-        animatedUiElement.RenderTransform.BeginAnimation(
-            TranslateTransform.XProperty,
-            translateDoubleAnimation
-        );
+        var state = new TransientTranslationState { BaseTransform = baseTransform, Translate = translate };
+        token = state.Token;
+
+        TransientTranslations.Add(animatedUiElement, state);
+        animatedUiElement.SetCurrentValue(UIElement.RenderTransformProperty, group);
+
+        return translate;
     }
 
-    private static void SlideLeftTransition(UIElement animatedUiElement, Duration duration)
+    /// <summary>
+    /// Restores the element's original <see cref="UIElement.RenderTransform"/> once the transition identified by <paramref name="token"/> is the most recent one applied.
+    /// </summary>
+    private static void EndTransientTranslate(UIElement animatedUiElement, int token)
     {
-        var translateDoubleAnimation = new DoubleAnimation
+        if (
+            !TransientTranslations.TryGetValue(animatedUiElement, out var state)
+            || state.Token != token
+        )
         {
-            Duration = duration,
-            DecelerationRatio = DecelerationRatio,
-            From = -50,
-            To = 0,
-        };
-
-        if (animatedUiElement.RenderTransform is not TranslateTransform)
-        {
-            animatedUiElement.SetCurrentValue(
-                UIElement.RenderTransformProperty,
-                new TranslateTransform(0, 0)
-            );
+            return;
         }
 
-        if (!animatedUiElement.RenderTransformOrigin.Equals(new Point(0.5, 0.5)))
-        {
-            animatedUiElement.SetCurrentValue(UIElement.RenderTransformOriginProperty, new Point(0.5, 0.5));
-        }
+        TransientTranslations.Remove(animatedUiElement);
+        animatedUiElement.SetCurrentValue(UIElement.RenderTransformProperty, state.BaseTransform);
+    }
 
-        animatedUiElement.RenderTransform.BeginAnimation(
-            TranslateTransform.XProperty,
-            translateDoubleAnimation
-        );
+    private sealed class TransientTranslationState
+    {
+        public required Transform BaseTransform { get; init; }
+
+        public required TranslateTransform Translate { get; init; }
+
+        public int Token { get; set; } = 1;
     }
 }

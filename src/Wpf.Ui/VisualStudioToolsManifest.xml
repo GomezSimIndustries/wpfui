@@ -49,8 +49,6 @@
       <Item Type="Wpf.Ui.Controls.ThumbRate" />
       <Item Type="Wpf.Ui.Controls.TitleBar" />
       <Item Type="Wpf.Ui.Controls.ToggleSwitch" />
-      <Item Type="Wpf.Ui.Controls.TreeGrid" />
-      <Item Type="Wpf.Ui.Controls.TreeGridItem" />
       <Item Type="Wpf.Ui.Controls.VirtualizingGridView" />
       <Item Type="Wpf.Ui.Controls.VirtualizingItemsControl" />
       <Item Type="Wpf.Ui.Controls.VirtualizingWrapPanel" />

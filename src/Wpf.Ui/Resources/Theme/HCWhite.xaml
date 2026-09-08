@@ -572,9 +572,6 @@
     <!--  ToolBar  -->
     <!--  TODO  -->
 
-    <!--  TreeGrid  -->
-    <!--  TODO  -->
-
     <!--  TreeView  -->
     <SolidColorBrush x:Key="TreeViewItemBackground" Color="{StaticResource SystemColorWindowColor}" />
     <SolidColorBrush x:Key="TreeViewItemBackgroundPointerOver" Color="{StaticResource SystemColorWindowColor}" />

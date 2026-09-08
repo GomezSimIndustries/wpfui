@@ -92,7 +92,6 @@
         <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Controls/ToggleSwitch/ToggleSwitch.xaml" />
         <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Controls/ToolBar/ToolBar.xaml" />
         <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Controls/ToolTip/ToolTip.xaml" />
-        <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Controls/TreeGrid/TreeGrid.xaml" />
         <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Controls/TreeView/TreeView.xaml" />
         <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Controls/TreeView/TreeViewItem.xaml" />
         <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Controls/VirtualizingGridView/VirtualizingGridView.xaml" />

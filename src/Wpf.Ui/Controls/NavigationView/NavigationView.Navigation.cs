@@ -243,6 +243,9 @@ public partial class NavigationView
         // Remove from complex navigation history
         _ = _complexNavigationStackHistory.Remove(item);
 
+        // Remove page associations owned by this item, leaving associations for other live items intact
+        RemovePageAssociations(item);
+
         // Remove from dictionaries
         _ = PageIdOrTargetTagNavigationViewsDictionary.Remove(itemId);
 
@@ -501,6 +504,33 @@ public partial class NavigationView
                 viewItem.Content = headerContent;
                 UpdateBreadcrumbContents();
             }
+        }
+    }
+
+    /// <summary>
+    /// Removes every <see cref="PageToNavigationItemDictionary"/> entry owned by the given item.
+    /// </summary>
+    /// <param name="item">The item whose page associations are being removed.</param>
+    private void RemovePageAssociations(INavigationViewItem item)
+    {
+        List<FrameworkElement>? keysToRemove = null;
+
+        foreach (KeyValuePair<FrameworkElement, INavigationViewItem> pair in PageToNavigationItemDictionary)
+        {
+            if (ReferenceEquals(pair.Value, item))
+            {
+                (keysToRemove ??= new List<FrameworkElement>()).Add(pair.Key);
+            }
+        }
+
+        if (keysToRemove is null)
+        {
+            return;
+        }
+
+        foreach (FrameworkElement key in keysToRemove)
+        {
+            _ = PageToNavigationItemDictionary.Remove(key);
         }
     }
 

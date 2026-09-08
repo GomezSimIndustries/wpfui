@@ -670,6 +670,7 @@ public partial class NavigationView
                 ClearCache();
                 PageIdOrTargetTagNavigationViewsDictionary.Clear();
                 PageTypeNavigationViewsDictionary.Clear();
+                PageToNavigationItemDictionary.Clear();
                 break;
         }
     }

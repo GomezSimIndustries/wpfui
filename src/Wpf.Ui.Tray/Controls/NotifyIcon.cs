@@ -278,6 +278,11 @@ public class NotifyIcon : FrameworkElement, IDisposable
     {
         base.OnRender(drawingContext);
 
+        if (Disposed)
+        {
+            return;
+        }
+
         if (internalNotifyIconManager.IsRegistered)
         {
             return;
@@ -378,9 +383,14 @@ public class NotifyIcon : FrameworkElement, IDisposable
     /// This virtual method is called when <see cref="ContextMenu"/> of <see cref="NotifyIcon"/> is changed.
     /// </summary>
     /// <param name="contextMenu">New context menu object.</param>
-    protected virtual void OnMenuChanged(ContextMenu contextMenu)
+    protected virtual void OnMenuChanged(ContextMenu? contextMenu)
     {
         internalNotifyIconManager.ContextMenu = contextMenu;
+
+        if (contextMenu is null)
+        {
+            return;
+        }
 
         // Set the DataContext for ContextMenu to enable binding
         if (contextMenu.DataContext == null && DataContext != null)
@@ -388,7 +398,7 @@ public class NotifyIcon : FrameworkElement, IDisposable
             contextMenu.DataContext = DataContext;
         }
 
-        internalNotifyIconManager.ContextMenu.SetCurrentValue(Control.FontSizeProperty, MenuFontSize);
+        contextMenu.SetCurrentValue(Control.FontSizeProperty, MenuFontSize);
     }
 
     private static void OnTooltipTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -452,12 +462,7 @@ public class NotifyIcon : FrameworkElement, IDisposable
             return;
         }
 
-        if (e.NewValue is not ContextMenu contextMenu)
-        {
-            return;
-        }
-
-        notifyIcon.OnMenuChanged(contextMenu);
+        notifyIcon.OnMenuChanged(e.NewValue as ContextMenu);
     }
 
     private void InitializeIcon()

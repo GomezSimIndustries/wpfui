@@ -64,7 +64,9 @@
                                     FontWeight="SemiBold"
                                     Foreground="{TemplateBinding Foreground}"
                                     Text="{TemplateBinding Title}"
-                                    TextWrapping="Wrap" />
+                                    TextWrapping="Wrap"
+                                    Visibility="{TemplateBinding ShowTitle,
+                                                                  Converter={StaticResource BoolToVisibilityConverter}}" />
 
                                 <controls:TitleBar
                                     Grid.Row="0"
@@ -130,6 +132,7 @@
                                                                          Converter={StaticResource BoolToVisibilityConverter}}" />
 
                                         <controls:Button
+                                            x:Name="CloseButton"
                                             Grid.Column="4"
                                             HorizontalAlignment="Stretch"
                                             Appearance="{TemplateBinding CloseButtonAppearance}"
@@ -137,7 +140,10 @@
                                             CommandParameter="{x:Static controls:MessageBoxButton.Close}"
                                             Content="{TemplateBinding CloseButtonText}"
                                             Icon="{TemplateBinding CloseButtonIcon}"
-                                            IsCancel="True" />
+                                            IsCancel="True"
+                                            IsEnabled="{TemplateBinding IsCloseButtonEnabled}"
+                                            Visibility="{TemplateBinding IsCloseButtonEnabled,
+                                                                          Converter={StaticResource BoolToVisibilityConverter}}" />
                                     </Grid>
                                 </Border>
                             </Grid>

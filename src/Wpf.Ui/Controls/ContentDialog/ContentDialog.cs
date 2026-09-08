@@ -742,15 +742,24 @@ public partial class ContentDialog : ContentControl
         );
 
         ContentDialogResult result = ContentDialogResult.None;
+        bool presented = false;
 
         try
         {
             if (_dialogHostEx is not null)
             {
-                _dialogHostEx.Content = this;
+                presented = await _dialogHostEx.AdmitAsync(this, cancellationToken);
+
+                if (!presented)
+                {
+                    _ = tcs.TrySetResult(ContentDialogResult.None);
+
+                    return await tcs.Task;
+                }
             }
             else
             {
+                presented = true;
                 _dialogHost!.Content = this;
             }
 
@@ -766,19 +775,26 @@ public partial class ContentDialog : ContentControl
             tokenRegistration.Dispose();
 #endif
 
-            // DialogHost is a public container. To prevent the new dialog from being closed immediately when
-            // it opens due to the unconditional clearing of the Content upon the closure of the previous dialog,
-            // only clear the DialogHost content if this instance is still the current content.
-            if (_dialogHostEx is not null && ReferenceEquals(_dialogHostEx.Content, this))
+            if (presented)
             {
-                _dialogHostEx.Content = null;
-            }
-            else if (_dialogHost is not null && ReferenceEquals(_dialogHost.Content, this))
-            {
-                _dialogHost.Content = null;
-            }
+                // DialogHost is a public container. To prevent the new dialog from being closed immediately when
+                // it opens due to the unconditional clearing of the Content upon the closure of the previous dialog,
+                // only clear the DialogHost content if this instance is still the current content.
+                if (_dialogHostEx is not null && ReferenceEquals(_dialogHostEx.Content, this))
+                {
+                    _dialogHostEx.Content = null;
+                }
+                else if (_dialogHost is not null && ReferenceEquals(_dialogHost.Content, this))
+                {
+                    _dialogHost.Content = null;
+                }
 
-            OnClosed(result);
+                OnClosed(result);
+            }
+            else
+            {
+                _ = tcs.TrySetResult(ContentDialogResult.None);
+            }
         }
     }
 
@@ -791,10 +807,22 @@ public partial class ContentDialog : ContentControl
 
         RaiseEvent(closingEventArgs);
 
-        if (!closingEventArgs.Cancel)
+        if (closingEventArgs.TryDefer(SettleClosing))
         {
-            _ = Tcs?.TrySetResult(result);
+            return;
         }
+
+        SettleClosing(closingEventArgs);
+    }
+
+    private void SettleClosing(ContentDialogClosingEventArgs closingEventArgs)
+    {
+        if (closingEventArgs.Cancel)
+        {
+            return;
+        }
+
+        _ = Tcs?.TrySetResult(closingEventArgs.Result);
     }
 
     /// <summary>

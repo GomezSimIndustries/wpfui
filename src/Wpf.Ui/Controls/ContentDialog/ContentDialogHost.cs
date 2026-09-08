@@ -65,6 +65,14 @@ public class ContentDialogHost : ContentControl
         new PropertyMetadata(false, OnIsDisableSiblingsEnabledChanged)
     );
 
+    /// <summary>Identifies the <see cref="AdmissionPolicy"/> dependency property.</summary>
+    public static readonly DependencyProperty AdmissionPolicyProperty = DependencyProperty.Register(
+        nameof(AdmissionPolicy),
+        typeof(ContentDialogAdmissionPolicy),
+        typeof(ContentDialogHost),
+        new PropertyMetadata(ContentDialogAdmissionPolicy.Replace)
+    );
+
     // Enforce single host per Window
     private static readonly ConditionalWeakTable<Window, ContentDialogHost> WindowHosts = new();
 
@@ -74,7 +82,12 @@ public class ContentDialogHost : ContentControl
     private static readonly object WindowHostsLock = new();
 #endif
 
+    private static readonly Task<bool> AdmittedTask = Task.FromResult(true);
+
     private readonly ContentDialogHostController _controller;
+
+    // Requests waiting under ContentDialogAdmissionPolicy.Queue, in arrival order.
+    private readonly Queue<QueuedAdmission> _admissionQueue = new();
 
     // Window this instance is currently registered against, captured at RegisterHost and cleared on Unloaded.
     private Window? _registeredWindow;
@@ -118,6 +131,24 @@ public class ContentDialogHost : ContentControl
     }
 
     /// <summary>
+    /// Gets or sets the policy applied to a show request that arrives while this host already presents a dialog.
+    /// The default value is <see cref="ContentDialogAdmissionPolicy.Replace"/>.
+    /// </summary>
+    /// <value>
+    /// <see cref="ContentDialogAdmissionPolicy.Replace"/> to let the incoming dialog take the host,
+    /// <see cref="ContentDialogAdmissionPolicy.Reject"/> to refuse it, or
+    /// <see cref="ContentDialogAdmissionPolicy.Queue"/> to present it once the host is free.
+    /// </value>
+    /// <remarks>
+    /// Read when a request arrives. Requests that are already waiting keep the policy they arrived under.
+    /// </remarks>
+    public ContentDialogAdmissionPolicy AdmissionPolicy
+    {
+        get => (ContentDialogAdmissionPolicy)GetValue(AdmissionPolicyProperty);
+        set => SetValue(AdmissionPolicyProperty, value);
+    }
+
+    /// <summary>
     /// Returns the <see cref="ContentDialogHost"/> instance registered for the specified <see cref="Window"/>, if any.
     /// </summary>
     /// <param name="window">Window to query for a registered <see cref="ContentDialogHost"/>.</param>
@@ -154,12 +185,73 @@ public class ContentDialogHost : ContentControl
         if (oldContent != null && newContent == null)
         {
             base.OnContentChanged(oldContent, newContent);
+
+            if (TryPresentNextQueuedDialog())
+            {
+                return;
+            }
+
             _controller.HandleDialogRemoved();
             return;
         }
 
         // Replacement: oldContent != null && newContent != null
         base.OnContentChanged(oldContent, newContent);
+    }
+
+    /// <summary>
+    /// Applies this host's <see cref="AdmissionPolicy"/> to a show request and presents the dialog once it is admitted.
+    /// </summary>
+    /// <param name="dialog">The dialog asking for the host.</param>
+    /// <param name="cancellationToken">Token that abandons a waiting request.</param>
+    /// <returns>A task carrying <see langword="true"/> once the dialog is presented, or <see langword="false"/> when the request was abandoned.</returns>
+    internal Task<bool> AdmitAsync(ContentDialog dialog, CancellationToken cancellationToken)
+    {
+        if (Content != null || _admissionQueue.Count > 0)
+        {
+            switch (AdmissionPolicy)
+            {
+                case ContentDialogAdmissionPolicy.Reject:
+                    throw new InvalidOperationException(
+                        "A ContentDialog is already presented in a ContentDialogHost whose AdmissionPolicy is Reject."
+                    );
+
+                case ContentDialogAdmissionPolicy.Queue:
+                    var queued = new QueuedAdmission(dialog, cancellationToken);
+                    _admissionQueue.Enqueue(queued);
+
+                    return queued.Admission;
+            }
+        }
+
+        Content = dialog;
+
+        return AdmittedTask;
+    }
+
+    private bool TryPresentNextQueuedDialog()
+    {
+        while (_admissionQueue.Count > 0)
+        {
+            QueuedAdmission queued = _admissionQueue.Dequeue();
+
+            if (queued.TryAdmit())
+            {
+                Content = queued.Dialog;
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void AbandonQueuedAdmissions()
+    {
+        while (_admissionQueue.Count > 0)
+        {
+            _admissionQueue.Dequeue().Abandon();
+        }
     }
 
     private static void OnIsDisableSiblingsEnabledChanged(
@@ -204,8 +296,15 @@ public class ContentDialogHost : ContentControl
 
         _registeredWindow = null;
 
-        // Settles the active dialog only when the host is no longer parented.
-        if (IsDetachedFromParent() && Content is ContentDialog activeDialog)
+        // Settles the active and waiting dialogs only when the host is no longer parented.
+        if (!IsDetachedFromParent())
+        {
+            return;
+        }
+
+        AbandonQueuedAdmissions();
+
+        if (Content is ContentDialog activeDialog)
         {
             activeDialog.SettleForHostTeardown();
         }
@@ -245,6 +344,43 @@ public class ContentDialogHost : ContentControl
 
             WindowHosts.Add(window, this);
             _registeredWindow = window;
+        }
+    }
+
+    private sealed class QueuedAdmission
+    {
+        private readonly TaskCompletionSource<bool> _admission = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+
+        private readonly CancellationTokenRegistration _cancellation;
+
+        public QueuedAdmission(ContentDialog dialog, CancellationToken cancellationToken)
+        {
+            Dialog = dialog;
+            _cancellation = cancellationToken.Register(() => _admission.TrySetResult(false));
+        }
+
+        public ContentDialog Dialog { get; }
+
+        public Task<bool> Admission => _admission.Task;
+
+        public bool TryAdmit()
+        {
+            if (!_admission.TrySetResult(true))
+            {
+                return false;
+            }
+
+            _cancellation.Dispose();
+
+            return true;
+        }
+
+        public void Abandon()
+        {
+            _ = _admission.TrySetResult(false);
+            _cancellation.Dispose();
         }
     }
 }

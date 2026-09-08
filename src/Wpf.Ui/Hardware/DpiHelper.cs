@@ -57,10 +57,17 @@ internal static class DpiHelper
             return new DisplayDpi(DefaultDpi, DefaultDpi);
         }
 
-        var windowDpi = (int)PInvoke.GetDpiForWindow(new HWND(windowHandle));
+        var windowDpi = NormalizeNativeDpi((int)PInvoke.GetDpiForWindow(new HWND(windowHandle)));
 
         return new DisplayDpi(windowDpi, windowDpi);
     }
+
+    /// <summary>
+    /// Maps a DPI value returned by a native call to a usable DPI, substituting <see cref="DefaultDpi"/> for a non-positive result.
+    /// </summary>
+    /// <param name="nativeDpi">The DPI value returned by a native call such as <c>GetDpiForWindow</c>.</param>
+    /// <returns><paramref name="nativeDpi"/> when positive; otherwise <see cref="DefaultDpi"/>.</returns>
+    internal static int NormalizeNativeDpi(int nativeDpi) => nativeDpi > 0 ? nativeDpi : DefaultDpi;
 
     // TODO: Look into utilizing preprocessor symbols for more functionality
     // ----

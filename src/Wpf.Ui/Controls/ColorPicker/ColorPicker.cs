@@ -31,7 +31,7 @@ namespace Wpf.Ui.Controls;
 [TemplatePart(Name = PartValueInput, Type = typeof(NumberBox))]
 [TemplatePart(Name = PartAlphaInput, Type = typeof(NumberBox))]
 [TemplatePart(Name = PartChannelToggle, Type = typeof(ToggleButton))]
-[TemplatePart(Name = PartCopyHexButton, Type = typeof(Button))]
+[TemplatePart(Name = PartCopyHexButton, Type = typeof(System.Windows.Controls.Button))]
 [TemplatePart(Name = PartColorPalette, Type = typeof(ItemsControl))]
 [TemplatePart(Name = PartRecentColors, Type = typeof(ItemsControl))]
 public class ColorPicker : Control
@@ -70,7 +70,7 @@ public class ColorPicker : Control
     private NumberBox? _valueInput;
     private NumberBox? _alphaInput;
     private ToggleButton? _channelToggle;
-    private Button? _copyHexButton;
+    private System.Windows.Controls.Button? _copyHexButton;
     private DispatcherTimer? _copyFeedbackTimer;
     private object? _copyHexButtonOriginalToolTip;
 
@@ -165,6 +165,38 @@ public class ColorPicker : Control
     /// <summary>Identifies the <see cref="MaxRecentColors"/> dependency property.</summary>
     public static readonly DependencyProperty MaxRecentColorsProperty = DependencyProperty.Register(
         nameof(MaxRecentColors), typeof(int), typeof(ColorPicker), new PropertyMetadata(10));
+
+    /// <summary>Identifies the <see cref="ValueSliderLabelText"/> dependency property.</summary>
+    public static readonly DependencyProperty ValueSliderLabelTextProperty = DependencyProperty.Register(
+        nameof(ValueSliderLabelText), typeof(string), typeof(ColorPicker), new PropertyMetadata("Value"));
+
+    /// <summary>Identifies the <see cref="OpacitySliderLabelText"/> dependency property.</summary>
+    public static readonly DependencyProperty OpacitySliderLabelTextProperty = DependencyProperty.Register(
+        nameof(OpacitySliderLabelText), typeof(string), typeof(ColorPicker), new PropertyMetadata("Opacity"));
+
+    /// <summary>Identifies the <see cref="HexInputLabelText"/> dependency property.</summary>
+    public static readonly DependencyProperty HexInputLabelTextProperty = DependencyProperty.Register(
+        nameof(HexInputLabelText), typeof(string), typeof(ColorPicker), new PropertyMetadata("Hex"));
+
+    /// <summary>Identifies the <see cref="CopyHexButtonToolTip"/> dependency property.</summary>
+    public static readonly DependencyProperty CopyHexButtonToolTipProperty = DependencyProperty.Register(
+        nameof(CopyHexButtonToolTip), typeof(string), typeof(ColorPicker), new PropertyMetadata("Copy hex value"));
+
+    /// <summary>Identifies the <see cref="CopyHexConfirmationText"/> dependency property.</summary>
+    public static readonly DependencyProperty CopyHexConfirmationTextProperty = DependencyProperty.Register(
+        nameof(CopyHexConfirmationText), typeof(string), typeof(ColorPicker), new PropertyMetadata("Copied!"));
+
+    /// <summary>Identifies the <see cref="RevertToPreviousColorToolTip"/> dependency property.</summary>
+    public static readonly DependencyProperty RevertToPreviousColorToolTipProperty = DependencyProperty.Register(
+        nameof(RevertToPreviousColorToolTip), typeof(string), typeof(ColorPicker), new PropertyMetadata("Click to revert to previous color"));
+
+    /// <summary>Identifies the <see cref="PaletteSectionHeaderText"/> dependency property.</summary>
+    public static readonly DependencyProperty PaletteSectionHeaderTextProperty = DependencyProperty.Register(
+        nameof(PaletteSectionHeaderText), typeof(string), typeof(ColorPicker), new PropertyMetadata("Colors"));
+
+    /// <summary>Identifies the <see cref="RecentColorsSectionHeaderText"/> dependency property.</summary>
+    public static readonly DependencyProperty RecentColorsSectionHeaderTextProperty = DependencyProperty.Register(
+        nameof(RecentColorsSectionHeaderText), typeof(string), typeof(ColorPicker), new PropertyMetadata("Recent"));
 
     #endregion
 
@@ -314,6 +346,70 @@ public class ColorPicker : Control
     /// <summary>Gets the collection of recently used colors.</summary>
     public ObservableCollection<Color> RecentColors { get; } = new();
 
+    /// <summary>Gets or sets the label text shown next to the value slider.</summary>
+    [Bindable(true)]
+    public string ValueSliderLabelText
+    {
+        get => (string)GetValue(ValueSliderLabelTextProperty);
+        set => SetValue(ValueSliderLabelTextProperty, value);
+    }
+
+    /// <summary>Gets or sets the label text shown next to the alpha slider.</summary>
+    [Bindable(true)]
+    public string OpacitySliderLabelText
+    {
+        get => (string)GetValue(OpacitySliderLabelTextProperty);
+        set => SetValue(OpacitySliderLabelTextProperty, value);
+    }
+
+    /// <summary>Gets or sets the label text shown next to the hex input.</summary>
+    [Bindable(true)]
+    public string HexInputLabelText
+    {
+        get => (string)GetValue(HexInputLabelTextProperty);
+        set => SetValue(HexInputLabelTextProperty, value);
+    }
+
+    /// <summary>Gets or sets the tooltip shown on the copy-hex button.</summary>
+    [Bindable(true)]
+    public string CopyHexButtonToolTip
+    {
+        get => (string)GetValue(CopyHexButtonToolTipProperty);
+        set => SetValue(CopyHexButtonToolTipProperty, value);
+    }
+
+    /// <summary>Gets or sets the text shown on the copy-hex button after a successful copy.</summary>
+    [Bindable(true)]
+    public string CopyHexConfirmationText
+    {
+        get => (string)GetValue(CopyHexConfirmationTextProperty);
+        set => SetValue(CopyHexConfirmationTextProperty, value);
+    }
+
+    /// <summary>Gets or sets the tooltip shown on the previous-color preview.</summary>
+    [Bindable(true)]
+    public string RevertToPreviousColorToolTip
+    {
+        get => (string)GetValue(RevertToPreviousColorToolTipProperty);
+        set => SetValue(RevertToPreviousColorToolTipProperty, value);
+    }
+
+    /// <summary>Gets or sets the header text shown above the color palette section.</summary>
+    [Bindable(true)]
+    public string PaletteSectionHeaderText
+    {
+        get => (string)GetValue(PaletteSectionHeaderTextProperty);
+        set => SetValue(PaletteSectionHeaderTextProperty, value);
+    }
+
+    /// <summary>Gets or sets the header text shown above the recent colors section.</summary>
+    [Bindable(true)]
+    public string RecentColorsSectionHeaderText
+    {
+        get => (string)GetValue(RecentColorsSectionHeaderTextProperty);
+        set => SetValue(RecentColorsSectionHeaderTextProperty, value);
+    }
+
     #endregion
 
     static ColorPicker()
@@ -389,7 +485,7 @@ public class ColorPicker : Control
         _valueInput = GetTemplateChild(PartValueInput) as NumberBox;
         _alphaInput = GetTemplateChild(PartAlphaInput) as NumberBox;
         _channelToggle = GetTemplateChild(PartChannelToggle) as ToggleButton;
-        _copyHexButton = GetTemplateChild(PartCopyHexButton) as Button;
+        _copyHexButton = GetTemplateChild(PartCopyHexButton) as System.Windows.Controls.Button;
 
         // Wire up spectrum changes
         if (_spectrum != null)
@@ -662,7 +758,7 @@ public class ColorPicker : Control
         return false;
     }
 
-    private void ShowCopyConfirmation()
+    internal void ShowCopyConfirmation()
     {
         if (_copyHexButton is null)
         {
@@ -672,7 +768,7 @@ public class ColorPicker : Control
         _copyFeedbackTimer?.Stop();
 
         _copyHexButtonOriginalToolTip ??= _copyHexButton.ToolTip;
-        _copyHexButton.ToolTip = new ToolTip { Content = "Copied!", PlacementTarget = _copyHexButton, IsOpen = true, };
+        _copyHexButton.ToolTip = new ToolTip { Content = CopyHexConfirmationText, PlacementTarget = _copyHexButton, IsOpen = true, };
 
         _copyFeedbackTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.2), };
         _copyFeedbackTimer.Tick -= OnCopyFeedbackElapsed;

@@ -157,8 +157,9 @@
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="Value"
+                                <TextBlock x:Name="PART_ValueSliderLabelText"
+                                           Grid.Column="0"
+                                           Text="{TemplateBinding ValueSliderLabelText}"
                                            FontSize="11"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            VerticalAlignment="Center"
@@ -177,8 +178,9 @@
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="Opacity"
+                                <TextBlock x:Name="PART_OpacitySliderLabelText"
+                                           Grid.Column="0"
+                                           Text="{TemplateBinding OpacitySliderLabelText}"
                                            FontSize="11"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            VerticalAlignment="Center"
@@ -215,7 +217,7 @@
                                         BorderBrush="{DynamicResource ControlElevationBorderBrush}"
                                         Cursor="Hand"
                                         Background="Transparent"
-                                        ToolTip="Click to revert to previous color" />
+                                        ToolTip="{TemplateBinding RevertToPreviousColorToolTip}" />
                             </Grid>
 
                             <!-- 5. Hex Input Row -->
@@ -226,8 +228,9 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="Hex"
+                                <TextBlock x:Name="PART_HexInputLabelText"
+                                           Grid.Column="0"
+                                           Text="{TemplateBinding HexInputLabelText}"
                                            FontSize="11"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            VerticalAlignment="Center"
@@ -245,7 +248,7 @@
                                         Margin="4,0,0,0"
                                         Padding="4"
                                         Width="28" Height="28"
-                                        ToolTip="Copy hex value"
+                                        ToolTip="{TemplateBinding CopyHexButtonToolTip}"
                                         VerticalAlignment="Center">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
@@ -444,7 +447,8 @@
                             <StackPanel x:Name="PaletteSection"
                                         Visibility="{TemplateBinding IsColorPaletteVisible, Converter={StaticResource BoolToVisConverter}}"
                                         Margin="0,0,0,4">
-                                <TextBlock Text="Colors"
+                                <TextBlock x:Name="PART_PaletteSectionHeaderText"
+                                           Text="{TemplateBinding PaletteSectionHeaderText}"
                                            FontSize="11"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            Margin="0,0,0,4" />
@@ -468,7 +472,8 @@
                             <StackPanel x:Name="RecentColorsSection"
                                         Visibility="Visible"
                                         Margin="0,4,0,0">
-                                <TextBlock Text="Recent"
+                                <TextBlock x:Name="PART_RecentColorsSectionHeaderText"
+                                           Text="{TemplateBinding RecentColorsSectionHeaderText}"
                                            FontSize="11"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            Margin="0,0,0,4" />

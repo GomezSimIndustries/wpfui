@@ -48,9 +48,7 @@ public partial class ThemeService : IThemeService
             return false;
         }
 
-        ApplicationThemeManager.Apply(applicationTheme);
-
-        return true;
+        return ApplicationThemeManager.Apply(applicationTheme);
     }
 
     /// <inheritdoc />

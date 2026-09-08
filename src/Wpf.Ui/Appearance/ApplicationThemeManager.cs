@@ -71,7 +71,8 @@ public static class ApplicationThemeManager
     /// <param name="applicationTheme">Theme to set.</param>
     /// <param name="backgroundEffect">Whether the custom background effect should be applied.</param>
     /// <param name="updateAccent">Whether the color accents should be changed.</param>
-    public static void Apply(
+    /// <returns><see langword="true"/> if the theme dictionary was actually replaced.</returns>
+    public static bool Apply(
         ApplicationTheme applicationTheme,
         WindowBackdropType backgroundEffect = WindowBackdropType.Mica,
         bool updateAccent = true
@@ -89,7 +90,7 @@ public static class ApplicationThemeManager
 
         if (applicationTheme == ApplicationTheme.Unknown)
         {
-            return;
+            return false;
         }
 
         ResourceDictionaryManager appDictionaries = new(LibraryNamespace);
@@ -118,7 +119,7 @@ public static class ApplicationThemeManager
 
         if (!isUpdated)
         {
-            return;
+            return false;
         }
 
         SystemThemeManager.UpdateSystemThemeCache();
@@ -131,6 +132,8 @@ public static class ApplicationThemeManager
         {
             WindowBackgroundManager.UpdateBackground(mainWindow, applicationTheme, backgroundEffect);
         }
+
+        return true;
     }
 
     /// <summary>

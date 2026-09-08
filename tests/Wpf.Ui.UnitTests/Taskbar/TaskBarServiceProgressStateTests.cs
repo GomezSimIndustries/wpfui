@@ -10,6 +10,7 @@ using Wpf.Ui.UnitTests.TestHelpers;
 
 namespace Wpf.Ui.UnitTests.Taskbar;
 
+[Collection("TaskBarProgressGatewayState")]
 public sealed class TaskBarServiceProgressStateTests : IDisposable
 {
     public void Dispose()

@@ -3,6 +3,7 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using System.Runtime.CompilerServices;
 using Wpf.Ui.Interop;
 
 namespace Wpf.Ui.TaskBar;
@@ -12,6 +13,8 @@ namespace Wpf.Ui.TaskBar;
 /// </summary>
 public static class TaskBarProgress
 {
+    private static readonly ConditionalWeakTable<Window, PendingRequest> PendingRequests = new();
+
     /// <summary>
     /// Gets a value indicating whether the current operating system supports task bar manipulation.
     /// </summary>
@@ -25,6 +28,7 @@ public static class TaskBarProgress
     /// </summary>
     /// <param name="window">Window to manipulate.</param>
     /// <param name="taskBarProgressState">State of the progress indicator.</param>
+    /// <returns><see langword="true"/> if the state was applied immediately; <see langword="false"/> if the window has not loaded yet and the request was queued for when it does.</returns>
     public static bool SetState(Window? window, TaskBarProgressState taskBarProgressState)
     {
         if (window is null)
@@ -34,15 +38,12 @@ public static class TaskBarProgress
 
         if (window.IsLoaded)
         {
-            return SetState(new WindowInteropHelper(window).Handle, taskBarProgressState);
+            return ApplyState(window, taskBarProgressState);
         }
 
-        window.Loaded += (_, _) =>
-        {
-            _ = SetState(new WindowInteropHelper(window).Handle, taskBarProgressState);
-        };
+        QueueRequest(window, w => ApplyState(w, taskBarProgressState));
 
-        return true;
+        return false;
     }
 
     /// <summary>
@@ -88,6 +89,7 @@ public static class TaskBarProgress
     /// <param name="taskBarProgressState">Progress sate to set.</param>
     /// <param name="current">Current value to display</param>
     /// <param name="total">Total number for division.</param>
+    /// <returns><see langword="true"/> if the value was applied immediately; <see langword="false"/> if the window has not loaded yet and the request was queued for when it does.</returns>
     public static bool SetValue(
         Window? window,
         TaskBarProgressState taskBarProgressState,
@@ -102,13 +104,10 @@ public static class TaskBarProgress
 
         if (window.IsLoaded)
         {
-            return SetValue(new WindowInteropHelper(window).Handle, taskBarProgressState, current, total);
+            return ApplyValue(window, taskBarProgressState, current, total);
         }
 
-        window.Loaded += (_, _) =>
-        {
-            _ = SetValue(new WindowInteropHelper(window).Handle, taskBarProgressState, current, total);
-        };
+        QueueRequest(window, w => ApplyValue(w, taskBarProgressState, current, total));
 
         return false;
     }
@@ -159,5 +158,81 @@ public static class TaskBarProgress
             current,
             total
         );
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether a window still has a queued pre-load request.
+    /// </summary>
+    /// <param name="window">Window to check.</param>
+    internal static bool HasPendingRequest(Window window) => PendingRequests.TryGetValue(window, out _);
+
+    private static bool ApplyState(Window window, TaskBarProgressState taskBarProgressState) =>
+        TaskBarService.ProgressGateway.SetState(new WindowInteropHelper(window).Handle, taskBarProgressState);
+
+    private static bool ApplyValue(
+        Window window,
+        TaskBarProgressState taskBarProgressState,
+        int current,
+        int total
+    ) =>
+        TaskBarService.ProgressGateway.SetValue(
+            new WindowInteropHelper(window).Handle,
+            taskBarProgressState,
+            current,
+            total
+        );
+
+    /// <summary>
+    /// Replaces any queued pre-load request for the window with a single one-shot Loaded subscription.
+    /// </summary>
+    private static void QueueRequest(Window window, Func<Window, bool> apply)
+    {
+        RemovePendingRequest(window);
+
+        RoutedEventHandler loadedHandler = (_, _) =>
+        {
+            RemovePendingRequest(window);
+            _ = apply(window);
+        };
+
+        EventHandler closedHandler = (_, _) =>
+        {
+            RemovePendingRequest(window);
+        };
+
+        PendingRequests.Add(window, new PendingRequest(loadedHandler, closedHandler));
+        window.Loaded += loadedHandler;
+        window.Closed += closedHandler;
+    }
+
+    /// <summary>
+    /// Unsubscribes and drops the window's queued pre-load request, if any.
+    /// </summary>
+    private static void RemovePendingRequest(Window window)
+    {
+        if (!PendingRequests.TryGetValue(window, out PendingRequest? pending))
+        {
+            return;
+        }
+
+        window.Loaded -= pending.LoadedHandler;
+        window.Closed -= pending.ClosedHandler;
+        PendingRequests.Remove(window);
+    }
+
+    /// <summary>
+    /// Holds the handlers attached for a window's queued pre-load request.
+    /// </summary>
+    private sealed class PendingRequest(RoutedEventHandler loadedHandler, EventHandler closedHandler)
+    {
+        /// <summary>
+        /// Gets the handler that applies the request once the window loads.
+        /// </summary>
+        public RoutedEventHandler LoadedHandler { get; } = loadedHandler;
+
+        /// <summary>
+        /// Gets the handler that drops the request if the window closes before loading.
+        /// </summary>
+        public EventHandler ClosedHandler { get; } = closedHandler;
     }
 }

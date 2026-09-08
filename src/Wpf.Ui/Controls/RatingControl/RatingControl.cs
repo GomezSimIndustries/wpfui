@@ -3,6 +3,9 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using System.Windows.Automation.Peers;
+using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 
 // ReSharper disable once CheckNamespace
@@ -11,11 +14,7 @@ namespace Wpf.Ui.Controls;
 /// <summary>
 /// Displays the rating scale with interactions.
 /// </summary>
-[TemplatePart(Name = "PART_Star1", Type = typeof(SymbolIcon))]
-[TemplatePart(Name = "PART_Star2", Type = typeof(SymbolIcon))]
-[TemplatePart(Name = "PART_Star3", Type = typeof(SymbolIcon))]
-[TemplatePart(Name = "PART_Star4", Type = typeof(SymbolIcon))]
-[TemplatePart(Name = "PART_Star5", Type = typeof(SymbolIcon))]
+[TemplatePart(Name = "PART_StarsContainer", Type = typeof(Grid))]
 public class RatingControl : System.Windows.Controls.ContentControl
 {
     private enum StarValue
@@ -25,16 +24,12 @@ public class RatingControl : System.Windows.Controls.ContentControl
         Filled,
     }
 
-    private const double MaxValue = 5.0D;
     private const double MinValue = 0.0D;
     private const int OffsetTolerance = 8;
     private static readonly SymbolRegular StarSymbol = SymbolRegular.Star28;
     private static readonly SymbolRegular StarHalfSymbol = SymbolRegular.StarHalf28;
-    private SymbolIcon? _symbolIconStarOne;
-    private SymbolIcon? _symbolIconStarTwo;
-    private SymbolIcon? _symbolIconStarThree;
-    private SymbolIcon? _symbolIconStarFour;
-    private SymbolIcon? _symbolIconStarFive;
+    private readonly List<SymbolIcon> _stars = new();
+    private Grid? _starsContainer;
 
     /// <summary>Identifies the <see cref="Value"/> dependency property.</summary>
     public static readonly DependencyProperty ValueProperty = DependencyProperty.Register(
@@ -49,7 +44,7 @@ public class RatingControl : System.Windows.Controls.ContentControl
         nameof(MaxRating),
         typeof(int),
         typeof(RatingControl),
-        new PropertyMetadata(5)
+        new PropertyMetadata(5, OnMaxRatingChanged, CoerceMaxRating)
     );
 
     /// <summary>Identifies the <see cref="HalfStarEnabled"/> dependency property.</summary>
@@ -109,9 +104,9 @@ public class RatingControl : System.Windows.Controls.ContentControl
     /// </summary>
     protected virtual void OnValueChanged(double oldValue)
     {
-        if (Value > MaxValue)
+        if (Value > MaxRating)
         {
-            SetCurrentValue(ValueProperty, MaxValue);
+            SetCurrentValue(ValueProperty, (double)MaxRating);
 
             return;
         }
@@ -126,6 +121,11 @@ public class RatingControl : System.Windows.Controls.ContentControl
         if (!Value.Equals(oldValue))
         {
             RaiseEvent(new RoutedEventArgs(ValueChangedEvent));
+
+            if (UIElementAutomationPeer.FromElement(this) is RatingControlAutomationPeer peer)
+            {
+                peer.NotifyValueChanged(oldValue, Value);
+            }
         }
 
         UpdateStarsFromValue();
@@ -181,7 +181,7 @@ public class RatingControl : System.Windows.Controls.ContentControl
     {
         base.OnKeyUp(e);
 
-        if ((e.Key == Key.Right || e.Key == Key.Up) && Value < MaxValue)
+        if ((e.Key == Key.Right || e.Key == Key.Up) && Value < MaxRating)
         {
             Value += HalfStarEnabled ? 0.5D : 1;
         }
@@ -199,32 +199,40 @@ public class RatingControl : System.Windows.Controls.ContentControl
     {
         base.OnApplyTemplate();
 
-        if (GetTemplateChild("PART_Star1") is SymbolIcon starOne)
-        {
-            _symbolIconStarOne = starOne;
-        }
+        _starsContainer = GetTemplateChild("PART_StarsContainer") as Grid;
 
-        if (GetTemplateChild("PART_Star2") is SymbolIcon starTwo)
-        {
-            _symbolIconStarTwo = starTwo;
-        }
-
-        if (GetTemplateChild("PART_Star3") is SymbolIcon starThree)
-        {
-            _symbolIconStarThree = starThree;
-        }
-
-        if (GetTemplateChild("PART_Star4") is SymbolIcon starFour)
-        {
-            _symbolIconStarFour = starFour;
-        }
-
-        if (GetTemplateChild("PART_Star5") is SymbolIcon starFive)
-        {
-            _symbolIconStarFive = starFive;
-        }
+        BuildStars();
 
         UpdateStarsFromValue();
+    }
+
+    /// <inheritdoc />
+    protected override AutomationPeer OnCreateAutomationPeer() => new RatingControlAutomationPeer(this);
+
+    private void BuildStars()
+    {
+        _stars.Clear();
+
+        if (_starsContainer is null)
+        {
+            return;
+        }
+
+        _starsContainer.Children.Clear();
+        _starsContainer.ColumnDefinitions.Clear();
+
+        for (var i = 0; i < MaxRating; i++)
+        {
+            var star = new SymbolIcon { Symbol = StarSymbol };
+            star.SetBinding(SymbolIcon.FontSizeProperty, new Binding(nameof(FontSize)) { Source = this });
+            star.SetBinding(SymbolIcon.ForegroundProperty, new Binding(nameof(Foreground)) { Source = this });
+
+            _starsContainer.ColumnDefinitions.Add(new ColumnDefinition());
+            Grid.SetColumn(star, i);
+            _starsContainer.Children.Add(star);
+
+            _stars.Add(star);
+        }
     }
 
     private void UpdateStarsOnMousePreview(double offsetPercentage)
@@ -241,118 +249,44 @@ public class RatingControl : System.Windows.Controls.ContentControl
 
     private void UpdateStarsFromValue()
     {
-        SetStarsPresence(ExtractValueFromOffset(Value * 100 / 5));
+        SetStarsPresence((int)Math.Round(Value * 2, MidpointRounding.AwayFromZero));
     }
 
     private void SetStarsPresence(int index)
     {
-        switch (index)
+        var maxIndex = MaxRating * 2;
+
+        for (var starIndex = 0; starIndex < _stars.Count; starIndex++)
         {
-            case 10:
-                UpdateStar(4, StarValue.Filled);
-                UpdateStar(3, StarValue.Filled);
-                UpdateStar(2, StarValue.Filled);
-                UpdateStar(1, StarValue.Filled);
-                UpdateStar(0, StarValue.Filled);
-                break;
-
-            case 9:
-                UpdateStar(4, StarValue.HalfFilled);
-                UpdateStar(3, StarValue.Filled);
-                UpdateStar(2, StarValue.Filled);
-                UpdateStar(1, StarValue.Filled);
-                UpdateStar(0, StarValue.Filled);
-                break;
-
-            case 8:
-                UpdateStar(4, StarValue.Empty);
-                UpdateStar(3, StarValue.Filled);
-                UpdateStar(2, StarValue.Filled);
-                UpdateStar(1, StarValue.Filled);
-                UpdateStar(0, StarValue.Filled);
-                break;
-
-            case 7:
-                UpdateStar(4, StarValue.Empty);
-                UpdateStar(3, StarValue.HalfFilled);
-                UpdateStar(2, StarValue.Filled);
-                UpdateStar(1, StarValue.Filled);
-                UpdateStar(0, StarValue.Filled);
-                break;
-
-            case 6:
-                UpdateStar(4, StarValue.Empty);
-                UpdateStar(3, StarValue.Empty);
-                UpdateStar(2, StarValue.Filled);
-                UpdateStar(1, StarValue.Filled);
-                UpdateStar(0, StarValue.Filled);
-                break;
-
-            case 5:
-                UpdateStar(4, StarValue.Empty);
-                UpdateStar(3, StarValue.Empty);
-                UpdateStar(2, StarValue.HalfFilled);
-                UpdateStar(1, StarValue.Filled);
-                UpdateStar(0, StarValue.Filled);
-                break;
-
-            case 4:
-                UpdateStar(4, StarValue.Empty);
-                UpdateStar(3, StarValue.Empty);
-                UpdateStar(2, StarValue.Empty);
-                UpdateStar(1, StarValue.Filled);
-                UpdateStar(0, StarValue.Filled);
-                break;
-
-            case 3:
-                UpdateStar(4, StarValue.Empty);
-                UpdateStar(3, StarValue.Empty);
-                UpdateStar(2, StarValue.Empty);
-                UpdateStar(1, StarValue.HalfFilled);
-                UpdateStar(0, StarValue.Filled);
-                break;
-
-            case 2:
-                UpdateStar(4, StarValue.Empty);
-                UpdateStar(3, StarValue.Empty);
-                UpdateStar(2, StarValue.Empty);
-                UpdateStar(1, StarValue.Empty);
-                UpdateStar(0, StarValue.Filled);
-                break;
-
-            case 1:
-                UpdateStar(4, StarValue.Empty);
-                UpdateStar(3, StarValue.Empty);
-                UpdateStar(2, StarValue.Empty);
-                UpdateStar(1, StarValue.Empty);
-                UpdateStar(0, StarValue.HalfFilled);
-                break;
-
-            default:
-                UpdateStar(4, StarValue.Empty);
-                UpdateStar(3, StarValue.Empty);
-                UpdateStar(2, StarValue.Empty);
-                UpdateStar(1, StarValue.Empty);
-                UpdateStar(0, StarValue.Empty);
-                break;
+            UpdateStar(starIndex, StarValueAt(starIndex, index, maxIndex));
         }
+    }
+
+    private static StarValue StarValueAt(int starIndex, int index, int maxIndex)
+    {
+        if (index < 1 || index > maxIndex)
+        {
+            return StarValue.Empty;
+        }
+
+        var threshold = (starIndex + 1) * 2;
+
+        if (index >= threshold)
+        {
+            return StarValue.Filled;
+        }
+
+        return index == threshold - 1 ? StarValue.HalfFilled : StarValue.Empty;
     }
 
     private void UpdateStar(int starIndex, StarValue starValue)
     {
-        SymbolIcon? selectedIcon = starIndex switch
-        {
-            1 => _symbolIconStarTwo,
-            2 => _symbolIconStarThree,
-            3 => _symbolIconStarFour,
-            4 => _symbolIconStarFive,
-            _ => _symbolIconStarOne,
-        };
-
-        if (selectedIcon is null)
+        if (starIndex < 0 || starIndex >= _stars.Count)
         {
             return;
         }
+
+        SymbolIcon selectedIcon = _stars[starIndex];
 
         switch (starValue)
         {
@@ -375,7 +309,8 @@ public class RatingControl : System.Windows.Controls.ContentControl
 
     private int ExtractValueFromOffset(double offset)
     {
-        var starValue = (int)(offset + OffsetTolerance) / 10;
+        var divisor = 50.0 / MaxRating;
+        var starValue = (int)((offset + OffsetTolerance) / divisor);
 
         if (!HalfStarEnabled)
         {
@@ -401,5 +336,29 @@ public class RatingControl : System.Windows.Controls.ContentControl
         }
 
         ratingControl.OnValueChanged((double)e.OldValue);
+    }
+
+    private static void OnMaxRatingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not RatingControl ratingControl)
+        {
+            return;
+        }
+
+        ratingControl.BuildStars();
+
+        if (ratingControl.Value > ratingControl.MaxRating)
+        {
+            ratingControl.SetCurrentValue(ValueProperty, (double)ratingControl.MaxRating);
+        }
+
+        ratingControl.UpdateStarsFromValue();
+    }
+
+    private static object CoerceMaxRating(DependencyObject d, object baseValue)
+    {
+        var value = (int)baseValue;
+
+        return value < 1 ? 1 : value;
     }
 }

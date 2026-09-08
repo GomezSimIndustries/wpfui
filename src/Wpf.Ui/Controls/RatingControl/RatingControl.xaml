@@ -35,49 +35,10 @@
                         </Grid.ColumnDefinitions>
 
                         <Grid
-                            x:Name="StarsContainer"
+                            x:Name="PART_StarsContainer"
                             Grid.Column="0"
                             HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-
-                            <controls:SymbolIcon
-                                x:Name="PART_Star1"
-                                Grid.Column="0"
-                                FontSize="{TemplateBinding FontSize}"
-                                Foreground="{TemplateBinding Foreground}"
-                                Symbol="Star28" />
-                            <controls:SymbolIcon
-                                x:Name="PART_Star2"
-                                Grid.Column="1"
-                                FontSize="{TemplateBinding FontSize}"
-                                Foreground="{TemplateBinding Foreground}"
-                                Symbol="Star28" />
-                            <controls:SymbolIcon
-                                x:Name="PART_Star3"
-                                Grid.Column="2"
-                                FontSize="{TemplateBinding FontSize}"
-                                Foreground="{TemplateBinding Foreground}"
-                                Symbol="Star28" />
-                            <controls:SymbolIcon
-                                x:Name="PART_Star4"
-                                Grid.Column="3"
-                                FontSize="{TemplateBinding FontSize}"
-                                Foreground="{TemplateBinding Foreground}"
-                                Symbol="Star28" />
-                            <controls:SymbolIcon
-                                x:Name="PART_Star5"
-                                Grid.Column="4"
-                                FontSize="{TemplateBinding FontSize}"
-                                Foreground="{TemplateBinding Foreground}"
-                                Symbol="Star28" />
-                        </Grid>
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
 
                         <Grid
                             x:Name="ContentGrid"
@@ -92,7 +53,7 @@
                             <Setter TargetName="ContentGrid" Property="Margin" Value="0" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="StarsContainer" Property="Opacity" Value="0.5" />
+                            <Setter TargetName="PART_StarsContainer" Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

@@ -25,6 +25,8 @@ namespace Wpf.Ui.Controls;
 [StyleTypedProperty(Property = nameof(ItemContainerStyle), StyleTargetType = typeof(BreadcrumbBarItem))]
 public class BreadcrumbBar : System.Windows.Controls.ItemsControl
 {
+    private bool _isSubscribedToGenerator;
+
     /// <summary>Identifies the <see cref="Command"/> dependency property.</summary>
     public static readonly DependencyProperty CommandProperty = DependencyProperty.Register(
         nameof(Command),
@@ -121,19 +123,28 @@ public class BreadcrumbBar : System.Windows.Controls.ItemsControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        if (_isSubscribedToGenerator)
+        {
+            return;
+        }
+
         ItemContainerGenerator.ItemsChanged += ItemContainerGeneratorOnItemsChanged;
         ItemContainerGenerator.StatusChanged += ItemContainerGeneratorOnStatusChanged;
+        _isSubscribedToGenerator = true;
 
         UpdateLastContainer();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
-        Loaded -= OnLoaded;
-        Unloaded -= OnUnloaded;
+        if (!_isSubscribedToGenerator)
+        {
+            return;
+        }
 
         ItemContainerGenerator.ItemsChanged -= ItemContainerGeneratorOnItemsChanged;
         ItemContainerGenerator.StatusChanged -= ItemContainerGeneratorOnStatusChanged;
+        _isSubscribedToGenerator = false;
     }
 
     private void ItemContainerGeneratorOnStatusChanged(object? sender, EventArgs e)
@@ -188,7 +199,11 @@ public class BreadcrumbBar : System.Windows.Controls.ItemsControl
         }
 
         var item = ItemContainerGenerator.Items[^offsetFromEnd];
-        var container = (BreadcrumbBarItem)ItemContainerGenerator.ContainerFromItem(item);
+
+        if (ItemContainerGenerator.ContainerFromItem(item) is not BreadcrumbBarItem container)
+        {
+            return;
+        }
 
         action.Invoke(container);
     }

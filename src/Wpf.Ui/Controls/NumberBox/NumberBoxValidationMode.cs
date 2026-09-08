@@ -9,17 +9,17 @@
 namespace Wpf.Ui.Controls;
 
 /// <summary>
-/// Defines values that specify the input validation behavior of a <see cref="NumberBox"/> when invalid input is entered.
+/// Defines values that specify how a <see cref="NumberBox"/> reconciles typed text with <see cref="NumberBox.Value"/>.
 /// </summary>
 public enum NumberBoxValidationMode
 {
     /// <summary>
-    /// Input validation is disabled.
+    /// Overwrites text that fails to parse as a number with the current <see cref="NumberBox.Value"/> when input is committed.
     /// </summary>
     InvalidInputOverwritten,
 
     /// <summary>
-    /// Invalid input is replaced by <see cref="NumberBox"/> PlaceholderText text.
+    /// Defers <see cref="NumberBox.Value"/> updates to commit and leaves unparseable text as the user typed it.
     /// </summary>
     Disabled,
 }

@@ -7,7 +7,6 @@
 
 // TODO: Mask (with placeholder); Clipboard paste;
 // TODO: Constant decimals when formatting. Although this can actually be done with NumberFormatter.
-// TODO: Disable expression by default
 // TODO: Lock to digit characters only by property
 //
 using System.Windows.Controls.Primitives;
@@ -92,7 +91,7 @@ public partial class NumberBox : TextBox
         nameof(AcceptsExpression),
         typeof(bool),
         typeof(NumberBox),
-        new PropertyMetadata(true)
+        new PropertyMetadata(false)
     );
 
     /// <summary>Identifies the <see cref="SpinButtonPlacementMode"/> dependency property.</summary>
@@ -182,8 +181,9 @@ public partial class NumberBox : TextBox
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the control will accept and evaluate a basic formulaic expression entered as input.
+    /// Gets or sets a value that has no effect; <see cref="NumberBox"/> parses plain numbers only.
     /// </summary>
+    [Obsolete("AcceptsExpression has no effect. NumberBox does not evaluate expressions.")]
     public bool AcceptsExpression
     {
         get => (bool)GetValue(AcceptsExpressionProperty);
@@ -209,8 +209,13 @@ public partial class NumberBox : TextBox
     }
 
     /// <summary>
-    /// Gets or sets the input validation behavior to invoke when invalid input is entered.
+    /// Gets or sets how <see cref="NumberBox"/> reconciles typed text with <see cref="Value"/> while typing and at commit.
     /// </summary>
+    /// <remarks>
+    /// Governs only <see cref="NumberBox"/>'s own text parsing. It does not disable the <see cref="Minimum"/>/<see cref="Maximum"/>
+    /// range invariant on <see cref="Value"/>. It is not a WPF <see cref="System.Windows.Controls.ValidationRule"/>; a binding-level
+    /// validation error requires a <see cref="System.Windows.Controls.ValidationRule"/> on the <see cref="Value"/> binding.
+    /// </remarks>
     public NumberBoxValidationMode ValidationMode
     {
         get => (NumberBoxValidationMode)GetValue(ValidationModeProperty);
@@ -318,6 +323,12 @@ public partial class NumberBox : TextBox
 
         // Don't validate while we're programmatically updating text from Value
         if (_valueUpdating)
+        {
+            return;
+        }
+
+        // ValidationMode.Disabled defers Value updates to explicit commit boundaries
+        if (ValidationMode == NumberBoxValidationMode.Disabled)
         {
             return;
         }
@@ -510,7 +521,19 @@ public partial class NumberBox : TextBox
         var numberParser = NumberFormatter as INumberParser;
         var value = numberParser!.ParseDouble(text);
 
-        if (value is null || Equals(Value, value))
+        if (value is null)
+        {
+            if (ValidationMode == NumberBoxValidationMode.Disabled)
+            {
+                return;
+            }
+
+            UpdateTextToValue();
+
+            return;
+        }
+
+        if (Equals(Value, value))
         {
             UpdateTextToValue();
 

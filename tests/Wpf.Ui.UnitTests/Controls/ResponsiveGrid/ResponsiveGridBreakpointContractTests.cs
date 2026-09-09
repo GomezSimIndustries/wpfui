@@ -194,4 +194,70 @@ public class ResponsiveGridBreakpointContractTests
             Assert.Equal(new Vector(0, 20), VisualTreeHelper.GetOffset(second));
         });
     }
+
+    [Theory]
+    [InlineData(1600, 3)]
+    [InlineData(1200, 3)]
+    [InlineData(1199, 6)]
+    [InlineData(800, 6)]
+    [InlineData(799, 9)]
+    [InlineData(400, 9)]
+    [InlineData(399, 12)]
+    public void ExplicitReferenceWidth_FixedSpanNarrowsThroughEveryBreakpoint(double gridWidth, int expectedSpanColumns)
+    {
+        WpfTestHost.Invoke(() =>
+        {
+            var grid = new ResponsiveGrid { Columns = 12, Gutter = 0, ReferenceWidth = 1600 };
+            var child = new Border();
+            ResponsiveGrid.SetXs(child, 12);
+            ResponsiveGrid.SetSm(child, 9);
+            ResponsiveGrid.SetMd(child, 6);
+            ResponsiveGrid.SetLg(child, 3);
+            grid.Children.Add(child);
+
+            grid.Measure(new Size(gridWidth, double.PositiveInfinity));
+            grid.Arrange(new Rect(0, 0, gridWidth, grid.DesiredSize.Height));
+
+            Assert.Equal(gridWidth / 12 * expectedSpanColumns, child.ActualWidth, 1);
+        });
+    }
+
+    [Fact]
+    public void SmUnset_FallsBackToXsAtTheSmBreakpointRatherThanMd()
+    {
+        WpfTestHost.Invoke(() =>
+        {
+            var grid = new ResponsiveGrid { Columns = 12, Gutter = 0, ReferenceWidth = 1600 };
+            var child = new Border();
+            ResponsiveGrid.SetXs(child, 12);
+            ResponsiveGrid.SetMd(child, 6);
+            grid.Children.Add(child);
+
+            const double smZoneWidth = 600;
+            grid.Measure(new Size(smZoneWidth, double.PositiveInfinity));
+            grid.Arrange(new Rect(0, 0, smZoneWidth, grid.DesiredSize.Height));
+
+            Assert.Equal(600d, child.ActualWidth, 1);
+        });
+    }
+
+    [Fact]
+    public void SmSet_OverridesTheXsFallbackAtTheSmBreakpoint()
+    {
+        WpfTestHost.Invoke(() =>
+        {
+            var grid = new ResponsiveGrid { Columns = 12, Gutter = 0, ReferenceWidth = 1600 };
+            var child = new Border();
+            ResponsiveGrid.SetXs(child, 12);
+            ResponsiveGrid.SetSm(child, 6);
+            ResponsiveGrid.SetMd(child, 6);
+            grid.Children.Add(child);
+
+            const double smZoneWidth = 600;
+            grid.Measure(new Size(smZoneWidth, double.PositiveInfinity));
+            grid.Arrange(new Rect(0, 0, smZoneWidth, grid.DesiredSize.Height));
+
+            Assert.Equal(300d, child.ActualWidth, 1);
+        });
+    }
 }

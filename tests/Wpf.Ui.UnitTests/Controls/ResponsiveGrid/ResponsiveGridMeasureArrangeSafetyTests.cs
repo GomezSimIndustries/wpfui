@@ -263,4 +263,40 @@ public class ResponsiveGridMeasureArrangeSafetyTests
             Assert.False(double.IsNaN(grid.DesiredSize.Width));
         });
     }
+
+    [Theory]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NaN)]
+    [InlineData(0)]
+    [InlineData(-50)]
+    public void ResolveColumnCount_WithoutAUsableWidth_FallsBackToOneColumn(double width)
+    {
+        WpfTestHost.Invoke(() =>
+        {
+            var grid = new ResponsiveGrid { Columns = 0, MinColumnWidth = 320 };
+
+            Assert.Equal(1, grid.ResolveColumnCount(width));
+        });
+    }
+
+    [Fact]
+    public void AutoFit_RowSpacing_SeparatesRowsAsChildrenWrap()
+    {
+        WpfTestHost.Invoke(() =>
+        {
+            var grid = new ResponsiveGrid { Columns = 0, MinColumnWidth = 320, ColumnSpacing = 10, RowSpacing = 10 };
+            var children = new Border[4];
+            for (int index = 0; index < children.Length; index++)
+            {
+                children[index] = new Border { Height = 50 };
+                grid.Children.Add(children[index]);
+            }
+
+            grid.Measure(new Size(1000, 1000));
+            grid.Arrange(new Rect(0, 0, grid.DesiredSize.Width, grid.DesiredSize.Height));
+
+            Assert.Equal(new Vector(0, 0), VisualTreeHelper.GetOffset(children[0]));
+            Assert.Equal(new Vector(0, 60), VisualTreeHelper.GetOffset(children[3]));
+        });
+    }
 }

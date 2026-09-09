@@ -4,6 +4,7 @@
 // All Rights Reserved.
 
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using Wpf.Ui.Controls;
 using Wpf.Ui.UnitTests.TestHelpers;
@@ -199,6 +200,45 @@ public class ResponsiveGridLatticeEngineTests
             };
 
             Assert.Equal(2, grid.ResolveColumnCount(1000));
+        });
+    }
+
+    [Fact]
+    public void AutoFit_ResolveColumnCount_AccountsForColumnSpacing()
+    {
+        WpfTestHost.Invoke(() =>
+        {
+            var grid = new ResponsiveGrid { Columns = 0, MinColumnWidth = 320, ColumnSpacing = 24 };
+
+            // Three 320 columns need two 24 gaps, so 1008 fits three and 1007 does not.
+            Assert.Equal(3, grid.ResolveColumnCount(1008));
+            Assert.Equal(2, grid.ResolveColumnCount(1007));
+        });
+    }
+
+    [Fact]
+    public void AutoFit_StretchAlignment_ArrangesEveryChildInARowToTheTallestChildsHeight()
+    {
+        WpfTestHost.Invoke(() =>
+        {
+            var grid = new ResponsiveGrid
+            {
+                Columns = 0,
+                MinColumnWidth = 320,
+                ColumnSpacing = 0,
+                RowSpacing = 0,
+                ItemVerticalAlignment = VerticalAlignment.Stretch,
+            };
+            var tall = new Border { Height = 120 };
+            var shorter = new Border { Height = 50 };
+            grid.Children.Add(tall);
+            grid.Children.Add(shorter);
+
+            grid.Measure(new Size(1000, 1000));
+            grid.Arrange(new Rect(0, 0, grid.DesiredSize.Width, grid.DesiredSize.Height));
+
+            Assert.Equal(120d, LayoutInformation.GetLayoutSlot(tall).Height, 3);
+            Assert.Equal(120d, LayoutInformation.GetLayoutSlot(shorter).Height, 3);
         });
     }
 

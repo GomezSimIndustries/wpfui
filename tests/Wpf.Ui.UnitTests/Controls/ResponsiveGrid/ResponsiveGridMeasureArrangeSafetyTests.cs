@@ -233,7 +233,7 @@ public class ResponsiveGridMeasureArrangeSafetyTests
     [Theory]
     [InlineData(0)]
     [InlineData(-3)]
-    public void InvalidColumns_MeasureReturnsZeroSizeWithoutThrowingAndLeavesChildrenUnmeasured(int columns)
+    public void NonPositiveColumns_MeasureResolvesTheColumnCountFromTheWidthWithoutThrowing(int columns)
     {
         WpfTestHost.Invoke(() =>
         {
@@ -243,7 +243,7 @@ public class ResponsiveGridMeasureArrangeSafetyTests
 
             grid.Measure(new Size(200, 1000));
 
-            Assert.Equal(new Size(0, 0), grid.DesiredSize);
+            Assert.Equal(new Size(200, 50), grid.DesiredSize);
         });
     }
 

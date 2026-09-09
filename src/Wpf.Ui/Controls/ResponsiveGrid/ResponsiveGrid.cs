@@ -11,6 +11,13 @@ namespace Wpf.Ui.Controls;
 /// A responsive grid panel that automatically adjusts layout based on container width.
 /// Similar to Bootstrap's grid system, but with percentage-based breakpoints.
 /// </summary>
+/// <remarks>
+/// The active <see cref="Breakpoint"/> is the largest one whose threshold ratio (<see cref="SmThreshold"/>,
+/// <see cref="MdThreshold"/> or <see cref="LgThreshold"/>) the current width-to-<see cref="ReferenceWidth"/> ratio
+/// meets or exceeds; a ratio below every threshold resolves to <see cref="Breakpoint.Xs"/>. <see cref="ReferenceWidth"/>
+/// defaults to <see cref="DefaultReferenceWidth"/> (1024 device-independent units). With the default thresholds,
+/// that places the boundaries at 256, 512 and 768 units of measured width.
+/// </remarks>
 /// <example>
 /// <code lang="xml">
 /// &lt;ui:ResponsiveGrid Columns="12" Gutter="16"&gt;
@@ -23,6 +30,9 @@ namespace Wpf.Ui.Controls;
 /// </example>
 public class ResponsiveGrid : Panel
 {
+    /// <summary>The reference width, in device-independent units, breakpoints are measured against when <see cref="ReferenceWidth"/> is left unset.</summary>
+    public const double DefaultReferenceWidth = 1024d;
+
     /// <summary>Identifies the <see cref="ItemVerticalAlignment"/> dependency property.</summary>
     public static readonly DependencyProperty ItemVerticalAlignmentProperty = DependencyProperty.Register(
         nameof(ItemVerticalAlignment),
@@ -84,7 +94,7 @@ public class ResponsiveGrid : Panel
         nameof(ReferenceWidth),
         typeof(double),
         typeof(ResponsiveGrid),
-        new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsMeasure)
+        new FrameworkPropertyMetadata(DefaultReferenceWidth, FrameworkPropertyMetadataOptions.AffectsMeasure, null, CoerceReferenceWidth)
     );
 
     private static readonly DependencyPropertyKey CurrentBreakpointPropertyKey = DependencyProperty.RegisterReadOnly(
@@ -193,9 +203,10 @@ public class ResponsiveGrid : Panel
     }
 
     /// <summary>
-    /// Gets or sets the threshold (0.0 to 1.0) at which the Sm breakpoint activates.
-    /// Default is 0.25 (25% of reference width).
+    /// Gets or sets the ratio (0.0 to 1.0) of <see cref="ReferenceWidth"/> at or above which the Sm breakpoint activates.
+    /// Default is 0.25.
     /// </summary>
+    /// <remarks>Values outside 0.0-1.0, and <see cref="double.NaN"/>, are coerced to 0.0.</remarks>
     [Bindable(true)]
     [Category("Layout")]
     public double SmThreshold
@@ -205,9 +216,10 @@ public class ResponsiveGrid : Panel
     }
 
     /// <summary>
-    /// Gets or sets the threshold (0.0 to 1.0) at which the Md breakpoint activates.
-    /// Default is 0.50 (50% of reference width).
+    /// Gets or sets the ratio (0.0 to 1.0) of <see cref="ReferenceWidth"/> at or above which the Md breakpoint activates.
+    /// Default is 0.50.
     /// </summary>
+    /// <remarks>Values outside 0.0-1.0, and <see cref="double.NaN"/>, are coerced to 0.0.</remarks>
     [Bindable(true)]
     [Category("Layout")]
     public double MdThreshold
@@ -217,9 +229,13 @@ public class ResponsiveGrid : Panel
     }
 
     /// <summary>
-    /// Gets or sets the threshold (0.0 to 1.0) at which the Lg breakpoint activates.
-    /// Default is 0.75 (75% of reference width).
+    /// Gets or sets the ratio (0.0 to 1.0) of <see cref="ReferenceWidth"/> at or above which the Lg breakpoint activates.
+    /// Default is 0.75.
     /// </summary>
+    /// <remarks>
+    /// Values outside 0.0-1.0, and <see cref="double.NaN"/>, are coerced to 0.0. Setting this to 0.0 makes every
+    /// positive container width resolve to <see cref="Breakpoint.Lg"/>.
+    /// </remarks>
     [Bindable(true)]
     [Category("Layout")]
     public double LgThreshold
@@ -229,10 +245,14 @@ public class ResponsiveGrid : Panel
     }
 
     /// <summary>
-    /// Gets or sets the reference width used for breakpoint calculations.
-    /// If 0 (default), the panel's available width is used directly without percentage calculation.
-    /// If set, breakpoints are calculated as percentages of this value.
+    /// Gets or sets the reference width, in device-independent units, that <see cref="SmThreshold"/>,
+    /// <see cref="MdThreshold"/> and <see cref="LgThreshold"/> are fractions of. Defaults to
+    /// <see cref="DefaultReferenceWidth"/>.
     /// </summary>
+    /// <remarks>
+    /// Setting this to 0.0 compares the container's measured width to itself, so every positive width resolves
+    /// to <see cref="Breakpoint.Lg"/>. Negative values and <see cref="double.NaN"/> are coerced to 0.0.
+    /// </remarks>
     [Bindable(true)]
     [Category("Layout")]
     public double ReferenceWidth
@@ -537,7 +557,7 @@ public class ResponsiveGrid : Panel
     private static object CoerceThreshold(DependencyObject d, object? baseValue)
     {
         double value = baseValue is double dbl ? dbl : 0.0;
-        return Math.Clamp(value, 0.0, 1.0);
+        return double.IsNaN(value) ? 0.0 : Math.Clamp(value, 0.0, 1.0);
     }
 
     private static object CoerceGutter(DependencyObject d, object? baseValue)
@@ -546,6 +566,17 @@ public class ResponsiveGrid : Panel
         return double.IsNaN(value) || value < 0 ? 0.0 : value;
     }
 
+    private static object CoerceReferenceWidth(DependencyObject d, object? baseValue)
+    {
+        double value = baseValue is double dbl ? dbl : 0.0;
+        return double.IsNaN(value) || value < 0 ? 0.0 : value;
+    }
+
+    /// <summary>Resolves the breakpoint whose threshold ratio the current width-to-<see cref="ReferenceWidth"/> ratio meets, checking Lg first.</summary>
+    /// <remarks>
+    /// If <see cref="SmThreshold"/>, <see cref="MdThreshold"/> and <see cref="LgThreshold"/> are not set in ascending order,
+    /// this still checks Lg, then Md, then Sm; the largest breakpoint whose threshold the ratio meets wins.
+    /// </remarks>
     private Breakpoint CalculateBreakpoint(double width)
     {
         double referenceWidth = ReferenceWidth > 0 ? ReferenceWidth : width;

@@ -52,7 +52,7 @@ public class ResponsiveGrid : Panel
         nameof(Gutter),
         typeof(double),
         typeof(ResponsiveGrid),
-        new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsMeasure)
+        new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsMeasure, null, CoerceGutter)
     );
 
     /// <summary>Identifies the <see cref="SmThreshold"/> dependency property.</summary>
@@ -286,22 +286,32 @@ public class ResponsiveGrid : Panel
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)
     {
-        double width = double.IsInfinity(availableSize.Width) ? 0 : availableSize.Width;
+        bool isWidthUnbounded = double.IsPositiveInfinity(availableSize.Width);
+        double width = isWidthUnbounded ? 0 : availableSize.Width;
 
         // Calculate breakpoint based on width
         Breakpoint breakpoint = CalculateBreakpoint(width);
         SetValue(CurrentBreakpointPropertyKey, breakpoint);
 
-        if (Columns <= 0 || width <= 0)
+        if (Columns <= 0)
         {
             return new Size(0, 0);
         }
 
-        double columnWidth = (width - (Gutter * (Columns - 1))) / Columns;
+        if (isWidthUnbounded)
+        {
+            return MeasureUnbounded(breakpoint);
+        }
+
+        if (width <= 0)
+        {
+            return new Size(0, 0);
+        }
+
+        double columnWidth = Math.Max(0, (width - (Gutter * (Columns - 1))) / Columns);
         double currentX = 0;
         double currentY = 0;
         double rowHeight = 0;
-        double maxWidth = 0;
         int rowCount = 0;
         double maxRowHeight = 0;
 
@@ -338,7 +348,6 @@ public class ResponsiveGrid : Panel
 
             rowHeight = Math.Max(rowHeight, child.DesiredSize.Height);
             currentX += itemWidth + Gutter;
-            maxWidth = Math.Max(maxWidth, currentX - Gutter);
         }
 
         if (rowHeight > 0)
@@ -358,13 +367,48 @@ public class ResponsiveGrid : Panel
             totalHeight = currentY + rowHeight;
         }
 
-        return new Size(double.IsInfinity(availableSize.Width) ? maxWidth : width, totalHeight);
+        return new Size(width, totalHeight);
+    }
+
+    /// <summary>Measures every visible child at its natural size and lays them out in a single row.</summary>
+    private Size MeasureUnbounded(Breakpoint breakpoint)
+    {
+        double currentX = 0;
+        double maxHeight = 0;
+        bool measuredAny = false;
+
+        foreach (UIElement child in InternalChildren)
+        {
+            if (child is null)
+            {
+                continue;
+            }
+
+            if (IsHiddenAtBreakpoint(child, breakpoint) || child.Visibility == Visibility.Collapsed)
+            {
+                child.Measure(new Size(0, 0));
+                continue;
+            }
+
+            child.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+
+            if (measuredAny)
+            {
+                currentX += Gutter;
+            }
+
+            currentX += child.DesiredSize.Width;
+            maxHeight = Math.Max(maxHeight, child.DesiredSize.Height);
+            measuredAny = true;
+        }
+
+        return new Size(currentX, maxHeight);
     }
 
     /// <inheritdoc />
     protected override Size ArrangeOverride(Size finalSize)
     {
-        double width = finalSize.Width;
+        double width = double.IsPositiveInfinity(finalSize.Width) ? 0 : finalSize.Width;
         Breakpoint breakpoint = CurrentBreakpoint;
 
         if (Columns <= 0 || width <= 0)
@@ -372,7 +416,7 @@ public class ResponsiveGrid : Panel
             return finalSize;
         }
 
-        double columnWidth = (width - (Gutter * (Columns - 1))) / Columns;
+        double columnWidth = Math.Max(0, (width - (Gutter * (Columns - 1))) / Columns);
         double currentX = 0;
         double currentY = 0;
         double rowHeight = 0;
@@ -494,6 +538,12 @@ public class ResponsiveGrid : Panel
     {
         double value = baseValue is double dbl ? dbl : 0.0;
         return Math.Clamp(value, 0.0, 1.0);
+    }
+
+    private static object CoerceGutter(DependencyObject d, object? baseValue)
+    {
+        double value = baseValue is double dbl ? dbl : 0.0;
+        return double.IsNaN(value) || value < 0 ? 0.0 : value;
     }
 
     private Breakpoint CalculateBreakpoint(double width)

@@ -402,6 +402,7 @@ public class TimePickerPopupContractTests
 
         picker.PerformClick();
         PumpUntil(() => popup.IsOpen);
+        WindowActivationGuard.AssertPopupCompliant(popup);
 
         return popup;
     }
@@ -460,7 +461,7 @@ public class TimePickerPopupContractTests
             Top = -32000,
             WindowStyle = WindowStyle.None,
             ShowInTaskbar = false,
-            ShowActivated = true,
+            ShowActivated = false,
         };
         window.Show();
         window.Activate();

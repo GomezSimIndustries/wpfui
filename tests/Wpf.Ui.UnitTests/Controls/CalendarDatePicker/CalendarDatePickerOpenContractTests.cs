@@ -246,7 +246,7 @@ public class CalendarDatePickerOpenContractTests
             Top = -32000,
             WindowStyle = WindowStyle.None,
             ShowInTaskbar = false,
-            ShowActivated = true,
+            ShowActivated = false,
         };
         window.Show();
         window.Activate();
@@ -267,6 +267,11 @@ public class CalendarDatePickerOpenContractTests
             base.OnPopupOpened(sender, e);
             PopupOpenedCount++;
             LastOpenedCalendarChild = (sender as Popup)?.Child;
+
+            if (sender is Popup popup)
+            {
+                WindowActivationGuard.TrackPopupOpened(popup);
+            }
         }
 
         protected override void OnClick()

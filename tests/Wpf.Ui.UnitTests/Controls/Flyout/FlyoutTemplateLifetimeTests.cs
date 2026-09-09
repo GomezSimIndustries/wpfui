@@ -104,6 +104,7 @@ public class FlyoutTemplateLifetimeTests
             ((Grid)owner.Content).Children.Add(flyout);
             owner.Show();
             flyout.ApplyTemplate();
+            var popup = (Popup)flyout.Template.FindName(ElementPopup, flyout)!;
 
             var openedCount = 0;
             var closedCount = 0;
@@ -112,6 +113,7 @@ public class FlyoutTemplateLifetimeTests
 
             flyout.Show();
             PumpDispatcherUntil(() => openedCount > 0);
+            WindowActivationGuard.AssertPopupCompliant(popup);
             Assert.True(flyout.IsOpen);
             Assert.Equal(1, openedCount);
 

@@ -149,6 +149,8 @@ public partial class NavigationView
         if (NavigationViewContentPresenter is not null)
         {
             NavigationViewContentPresenter.Navigated += OnNavigationViewContentPresenterNavigated;
+            NavigationViewContentPresenter.NavigationLifecycleFailed +=
+                OnNavigationViewContentPresenterNavigationLifecycleFailed;
 
             // Apply the ContentScrollViewerVisibility setting to the content presenter
             NavigationViewContentPresenter.SetCurrentValue(
@@ -191,6 +193,8 @@ public partial class NavigationView
         if (NavigationViewContentPresenter is not null)
         {
             NavigationViewContentPresenter.Navigated -= OnNavigationViewContentPresenterNavigated;
+            NavigationViewContentPresenter.NavigationLifecycleFailed -=
+                OnNavigationViewContentPresenterNavigationLifecycleFailed;
         }
 
         if (AutoSuggestBoxSymbolButton is not null)

@@ -25,10 +25,24 @@ public partial class NavigationService(INavigationViewPageProvider pageProvider)
     }
 
     /// <inheritdoc />
+    public event EventHandler<NavigationLifecycleFailedEventArgs>? NavigationLifecycleFailed;
+
+    /// <inheritdoc />
     public void SetNavigationControl(INavigationView navigation)
     {
+        if (NavigationControl is not null)
+        {
+            NavigationControl.NavigationLifecycleFailed -= OnNavigationControlLifecycleFailed;
+        }
+
         NavigationControl = navigation;
         NavigationControl.SetPageProviderService(pageProvider);
+        NavigationControl.NavigationLifecycleFailed += OnNavigationControlLifecycleFailed;
+    }
+
+    private void OnNavigationControlLifecycleFailed(object? sender, NavigationLifecycleFailedEventArgs e)
+    {
+        NavigationLifecycleFailed?.Invoke(this, e);
     }
 
     /// <inheritdoc />

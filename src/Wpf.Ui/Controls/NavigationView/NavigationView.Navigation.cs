@@ -607,6 +607,14 @@ public partial class NavigationView
         }
     }
 
+    private void OnNavigationViewContentPresenterNavigationLifecycleFailed(
+        object? sender,
+        NavigationLifecycleFailedEventArgs e
+    )
+    {
+        OnNavigationLifecycleFailed(e);
+    }
+
     private void AddToNavigationStack(
         INavigationViewItem viewItem,
         bool addToNavigationStack,

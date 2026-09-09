@@ -76,4 +76,9 @@ public interface INavigationService
     /// </summary>
     /// <returns><see langword="true"/> if the operation succeeds. <see langword="false"/> otherwise.</returns>
     bool GoBack();
+
+    /// <summary>
+    /// Occurs when an <see cref="Wpf.Ui.Abstractions.Controls.INavigationAware"/> callback throws.
+    /// </summary>
+    event EventHandler<NavigationLifecycleFailedEventArgs> NavigationLifecycleFailed;
 }

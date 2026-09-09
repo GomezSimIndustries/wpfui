@@ -222,6 +222,11 @@ public interface INavigationView
     event TypedEventHandler<NavigationView, NavigatedEventArgs> Navigated;
 
     /// <summary>
+    /// Occurs when an <see cref="Wpf.Ui.Abstractions.Controls.INavigationAware"/> callback throws.
+    /// </summary>
+    event EventHandler<NavigationLifecycleFailedEventArgs> NavigationLifecycleFailed;
+
+    /// <summary>
     /// Gets a value indicating whether there is at least one entry in back navigation history.
     /// </summary>
     bool CanGoBack { get; }

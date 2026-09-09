@@ -119,6 +119,9 @@ public partial class NavigationView
         remove => RemoveHandler(NavigatedEvent, value);
     }
 
+    /// <inheritdoc/>
+    public event EventHandler<NavigationLifecycleFailedEventArgs>? NavigationLifecycleFailed;
+
     /// <summary>
     /// Raises the pane opened event.
     /// </summary>
@@ -179,5 +182,13 @@ public partial class NavigationView
         var eventArgs = new NavigatedEventArgs(NavigatedEvent, this) { Page = page };
 
         RaiseEvent(eventArgs);
+    }
+
+    /// <summary>
+    /// Raises the navigation lifecycle failed event.
+    /// </summary>
+    protected virtual void OnNavigationLifecycleFailed(NavigationLifecycleFailedEventArgs eventArgs)
+    {
+        NavigationLifecycleFailed?.Invoke(this, eventArgs);
     }
 }

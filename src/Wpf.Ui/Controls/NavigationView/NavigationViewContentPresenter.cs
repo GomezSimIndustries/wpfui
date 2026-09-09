@@ -17,9 +17,13 @@ namespace Wpf.Ui.Controls;
 public class NavigationViewContentPresenter : Frame
 {
     /// <summary>
-    /// Stores the previous content during navigation to properly notify it about being navigated from.
+    /// Stores the content that received an entry notification and has not yet been notified about leaving.
     /// </summary>
-    private object? _previousContent;
+    private object? _enteredContent;
+
+    private Task _lifecycleCompletion = Task.CompletedTask;
+
+    private int _lifecycleGeneration;
 
     /// <summary>Identifies the <see cref="TransitionDuration"/> dependency property.</summary>
     public static readonly DependencyProperty TransitionDurationProperty = DependencyProperty.Register(
@@ -102,6 +106,13 @@ public class NavigationViewContentPresenter : Frame
     /// </summary>
     internal object? PendingNavigationParameter { get; set; }
 
+    /// <summary>Occurs when an <see cref="Wpf.Ui.Abstractions.Controls.INavigationAware"/> callback throws.</summary>
+    public event EventHandler<NavigationLifecycleFailedEventArgs>? NavigationLifecycleFailed;
+
+    /// <summary>Gets a task that completes when the queued navigation lifecycle callbacks have run.</summary>
+    /// <remarks>Read this property on the thread that owns the presenter; every navigation replaces it.</remarks>
+    public Task NavigationLifecycleCompletion => _lifecycleCompletion;
+
     static NavigationViewContentPresenter()
     {
         DefaultStyleKeyProperty.OverrideMetadata(
@@ -169,9 +180,9 @@ public class NavigationViewContentPresenter : Frame
         // Notify current content that it's being navigated away from when the presenter is unloaded
         Unloaded += static (sender, _) =>
         {
-            if (sender is NavigationViewContentPresenter { Content: not null } navigator)
+            if (sender is NavigationViewContentPresenter navigator)
             {
-                NotifyContentAboutNavigatedFrom(navigator.Content);
+                navigator.EnqueueLifecycleTransition(target: null, parameter: null);
             }
         };
     }
@@ -198,33 +209,20 @@ public class NavigationViewContentPresenter : Frame
         base.OnPreviewKeyDown(e);
     }
 
-    protected virtual void OnNavigating(System.Windows.Navigation.NavigatingCancelEventArgs eventArgs)
-    {
-        // Store the current content so we can notify it in OnNavigated (after visual transition)
-        if (eventArgs.Navigator is NavigationViewContentPresenter navigator)
-        {
-            _previousContent = navigator.Content;
-        }
-    }
+    protected virtual void OnNavigating(System.Windows.Navigation.NavigatingCancelEventArgs eventArgs) { }
 
     protected virtual void OnNavigated(NavigationEventArgs eventArgs)
     {
-        // First: Notify old content about being navigated from
-        // This happens AFTER the navigation is complete (page is no longer visible)
-        if (_previousContent is not null)
-        {
-            NotifyContentAboutNavigatedFrom(_previousContent);
-            _previousContent = null;
-        }
-
-        // Second: Notify new content about being navigated to
-        // This happens AFTER navigation is complete (page IS visible now)
+        // Queue the leave notification and then the entry notification for the new content
         if (eventArgs.Content is not null)
         {
-            NotifyContentAboutNavigatedTo(eventArgs.Content);
+            object? parameter = PendingNavigationParameter;
+            PendingNavigationParameter = null;
+
+            EnqueueLifecycleTransition(eventArgs.Content, parameter);
         }
 
-        // Third: Apply visual transition effect
+        // Apply visual transition effect
         ApplyTransitionEffectToNavigatedPage(eventArgs.Content);
 
         if (eventArgs.Content is not DependencyObject dependencyObject)
@@ -254,17 +252,43 @@ public class NavigationViewContentPresenter : Frame
         _ = TransitionAnimationProvider.ApplyTransition(content, Transition, TransitionDuration);
     }
 
-    private void NotifyContentAboutNavigatedTo(object content)
+    private void EnqueueLifecycleTransition(object? target, object? parameter)
     {
-        var parameter = PendingNavigationParameter;
-        PendingNavigationParameter = null; // Clear after use
+        _lifecycleGeneration++;
 
-        NotifyINavigationAware(content, parameter, isNavigatingTo: true);
+        _lifecycleCompletion = RunLifecycleTransitionAsync(
+            _lifecycleCompletion,
+            _lifecycleGeneration,
+            target,
+            parameter
+        );
     }
 
-    private static void NotifyContentAboutNavigatedFrom(object content)
+    private async Task RunLifecycleTransitionAsync(
+        Task precedingTransitions,
+        int generation,
+        object? target,
+        object? parameter
+    )
     {
-        NotifyINavigationAware(content, parameter: null, isNavigatingTo: false);
+        await precedingTransitions;
+
+        if (_enteredContent is { } leavingContent)
+        {
+            _enteredContent = null;
+
+            await NotifyINavigationAwareAsync(leavingContent, parameter: null, isNavigatingTo: false);
+        }
+
+        // A later navigation replaces the generation, and its transition enters its own content
+        if (target is null || generation != _lifecycleGeneration)
+        {
+            return;
+        }
+
+        _enteredContent = target;
+
+        await NotifyINavigationAwareAsync(target, parameter, isNavigatingTo: true);
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -272,62 +296,75 @@ public class NavigationViewContentPresenter : Frame
         "SuspiciousTypeConversion.Global",
         Justification = "The library user might make a class inherit from both FrameworkElement and INavigationAware at the same time."
     )]
-    private static void NotifyINavigationAware(object content, object? parameter, bool isNavigatingTo)
+    private async Task NotifyINavigationAwareAsync(object content, object? parameter, bool isNavigatingTo)
     {
-        // Fire-and-forget async call with exception handling
-        static async void PerformNotifyAsync(INavigationAware navigationAware, object? param, bool navigatingTo)
-        {
-            try
-            {
-                if (navigatingTo)
-                {
-                    // For INavigationParameterAware, call the parameterized overload
-                    // Note: No ConfigureAwait(false) - navigation callbacks need UI thread context
-                    if (navigationAware is INavigationParameterAware paramAware)
-                    {
-                        await paramAware.OnNavigatedToAsync(param);
-                    }
-                    else
-                    {
-                        await navigationAware.OnNavigatedToAsync();
-                    }
-                }
-                else
-                {
-                    await navigationAware.OnNavigatedFromAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log to debug output - in production, consider surfacing this via an event
-                System.Diagnostics.Debug.WriteLine(
-                    $"[NavigationViewContentPresenter] INavigationAware callback failed: {ex.Message}"
-                );
-            }
-        }
-
         switch (content)
         {
-            // The order in which the OnNavigatedToAsync/OnNavigatedFromAsync methods of View and ViewModel are called
-            // is not guaranteed - both are notified if both implement INavigationAware
+            // A view is notified before its data context, and the two callbacks do not overlap
             case INavigationAware navigationAwareNavigationContent:
-                PerformNotifyAsync(navigationAwareNavigationContent, parameter, isNavigatingTo);
+                await InvokeLifecycleCallbackAsync(
+                    navigationAwareNavigationContent,
+                    parameter,
+                    isNavigatingTo
+                );
                 if (
                     navigationAwareNavigationContent
                         is FrameworkElement { DataContext: INavigationAware viewModel }
                     && !ReferenceEquals(viewModel, navigationAwareNavigationContent)
                 )
                 {
-                    PerformNotifyAsync(viewModel, parameter, isNavigatingTo);
+                    await InvokeLifecycleCallbackAsync(viewModel, parameter, isNavigatingTo);
                 }
 
                 break;
             case INavigableView<object> { ViewModel: INavigationAware navigationAwareNavigableViewViewModel }:
-                PerformNotifyAsync(navigationAwareNavigableViewViewModel, parameter, isNavigatingTo);
+                await InvokeLifecycleCallbackAsync(
+                    navigationAwareNavigableViewViewModel,
+                    parameter,
+                    isNavigatingTo
+                );
                 break;
             case FrameworkElement { DataContext: INavigationAware navigationAwareCurrentContent }:
-                PerformNotifyAsync(navigationAwareCurrentContent, parameter, isNavigatingTo);
+                await InvokeLifecycleCallbackAsync(navigationAwareCurrentContent, parameter, isNavigatingTo);
                 break;
+        }
+    }
+
+    private async Task InvokeLifecycleCallbackAsync(
+        INavigationAware navigationAware,
+        object? parameter,
+        bool isNavigatingTo
+    )
+    {
+        try
+        {
+            if (!isNavigatingTo)
+            {
+                await navigationAware.OnNavigatedFromAsync();
+
+                return;
+            }
+
+            // No ConfigureAwait(false) - navigation callbacks need UI thread context
+            if (navigationAware is INavigationParameterAware parameterAware)
+            {
+                await parameterAware.OnNavigatedToAsync(parameter);
+
+                return;
+            }
+
+            await navigationAware.OnNavigatedToAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[NavigationViewContentPresenter] INavigationAware callback failed: {ex.Message}"
+            );
+
+            NavigationLifecycleFailed?.Invoke(
+                this,
+                new NavigationLifecycleFailedEventArgs(navigationAware, isNavigatingTo, ex)
+            );
         }
     }
 }

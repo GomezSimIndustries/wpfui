@@ -305,6 +305,18 @@ public partial class MyViewModel : ObservableObject, INavigationAware
 > [!IMPORTANT]
 > For `INavigableView<T>` to work, your page must have a public `ViewModel` property that returns an instance of the ViewModel.
 
+### Callback Order
+
+The navigation lifecycle callbacks run one at a time, in this order:
+
+1. The page being left receives `OnNavigatedFromAsync`, and that task is awaited.
+2. The page being entered receives `OnNavigatedToAsync`, or the `INavigationParameterAware` overload when it implements one.
+3. When a page and its `DataContext` both implement `INavigationAware`, the page's callback completes before the `DataContext` callback starts.
+
+A page that another navigation replaces before its entry callback starts is never entered, and every page that was entered receives exactly one leave callback.
+
+`NavigationViewContentPresenter.NavigationLifecycleCompletion` completes once the queued callbacks have run. `NavigationViewContentPresenter.NavigationLifecycleFailed` carries the exception a callback threw, along with the object that threw it.
+
 ## History and Caching
 
 `NavigationView` maintains a navigation history.

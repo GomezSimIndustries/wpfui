@@ -583,9 +583,11 @@ public partial class NavigationView
             case NotifyCollectionChangedAction.Add:
                 if (e.NewItems is not null)
                 {
+                    var insertIndex = e.NewStartingIndex >= 0 ? e.NewStartingIndex : collection.Count;
                     foreach (var item in e.NewItems)
                     {
-                        _ = collection.Add(item);
+                        collection.Insert(insertIndex, item);
+                        insertIndex++;
                     }
                 }
 

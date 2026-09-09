@@ -127,6 +127,42 @@ public class NavigationViewMenuItemsSourceTests
 
     [Theory]
     [MemberData(nameof(AllSourceKinds))]
+    public void InsertingIntoTheSource_PlacesTheItemAtTheSameIndexInTheDestination(SourceKind kind)
+    {
+        WpfTestHost.Invoke(() =>
+        {
+            var navigationView = new NavigationView();
+            var source = new RecordingObservableSource("a", "b", "c");
+
+            SetSource(navigationView, kind, source);
+            var destination = GetDestination(navigationView, kind);
+
+            source.Insert(1, "x");
+
+            Assert.Equal(new object[] { "a", "x", "b", "c" }, destination.Cast<object>());
+        });
+    }
+
+    [Theory]
+    [MemberData(nameof(AllSourceKinds))]
+    public void InsertingMultipleItemsAtOnce_PlacesThemAtTheSameStartingIndexInOrder(SourceKind kind)
+    {
+        WpfTestHost.Invoke(() =>
+        {
+            var navigationView = new NavigationView();
+            var source = new RecordingObservableSource("a", "b", "c");
+
+            SetSource(navigationView, kind, source);
+            var destination = GetDestination(navigationView, kind);
+
+            source.InsertRange(1, "x", "y");
+
+            Assert.Equal(new object[] { "a", "x", "y", "b", "c" }, destination.Cast<object>());
+        });
+    }
+
+    [Theory]
+    [MemberData(nameof(AllSourceKinds))]
     public void ReplacingSource_AllowsTheNavigationViewToBeCollectedWhileThePreviousSourceSurvives(SourceKind kind)
     {
         var first = new RecordingObservableSource("a");
@@ -219,6 +255,24 @@ public class NavigationViewMenuItemsSourceTests
                     item,
                     _items.Count - 1
                 )
+            );
+        }
+
+        public void Insert(int index, object item)
+        {
+            _items.Insert(index, item);
+            _collectionChanged?.Invoke(
+                this,
+                new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index)
+            );
+        }
+
+        public void InsertRange(int index, params object[] items)
+        {
+            _items.InsertRange(index, items);
+            _collectionChanged?.Invoke(
+                this,
+                new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, items, index)
             );
         }
 

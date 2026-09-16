@@ -18,6 +18,39 @@ namespace Wpf.Ui.UnitTests.Controls;
 public class NavigationViewTransientPageConstructionTests
 {
     [Fact]
+    public void CanceledUnlistedRequest_ResumesTheCapturedPageInstance()
+    {
+        WpfTestHost.Invoke(() =>
+        {
+            ExposingNavigationView navigationView = CreateAppliedNavigationView();
+            var provider = new CountingPageProvider();
+            navigationView.SetPageProviderService(provider);
+            var parameter = new object();
+            object? requestedPage = null;
+            Func<bool>? resume = null;
+            bool cancel = true;
+            navigationView.Navigating += (_, e) =>
+            {
+                if (cancel)
+                {
+                    e.Cancel = true;
+                    requestedPage = e.Page;
+                    resume = e.ResumeNavigation;
+                }
+            };
+
+            Assert.False(navigationView.Navigate(typeof(CountingParameterAwarePage), parameter));
+            Assert.Equal(1, provider.ConstructionCount);
+            cancel = false;
+            Assert.True(resume!());
+            PumpDispatcher();
+            Assert.Same(requestedPage, navigationView.CurrentContent);
+            Assert.Equal(1, provider.ConstructionCount);
+            Assert.Same(parameter, ((CountingParameterAwarePage)navigationView.CurrentContent!).LastParameter);
+        });
+    }
+
+    [Fact]
     public void Navigate_ToATypeAbsentFromTheMenu_ConstructsThePageOnceAndDeliversTitleParameterAndCallback()
     {
         WpfTestHost.Invoke(() =>

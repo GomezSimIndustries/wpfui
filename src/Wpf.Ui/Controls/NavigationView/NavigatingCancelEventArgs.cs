@@ -17,4 +17,10 @@ public class NavigatingCancelEventArgs : RoutedEventArgs
     public required object Page { get; init; }
 
     public bool Cancel { get; set; }
+
+    /// <summary>Gets a one-use continuation for this request after it has been canceled.</summary>
+    public Func<bool>? ResumeNavigation { get; internal init; }
+
+    /// <summary>Gets the data context supplied with the navigation request.</summary>
+    public object? TargetDataContext { get; internal init; }
 }

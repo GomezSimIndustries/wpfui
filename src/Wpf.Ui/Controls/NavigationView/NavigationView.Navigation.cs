@@ -207,6 +207,7 @@ public partial class NavigationView
     /// <inheritdoc />
     public virtual void ClearJournal()
     {
+        _navigationRequestVersion++;
         _currentIndexInJournal = 0;
 
         Journal.Clear();
@@ -218,6 +219,7 @@ public partial class NavigationView
     /// <inheritdoc />
     public virtual void ClearCache()
     {
+        _navigationRequestVersion++;
         _cache.Clear();
         _itemInstanceCache.Clear();
     }
@@ -294,13 +296,15 @@ public partial class NavigationView
     private bool TryToNavigateWithoutINavigationViewItem(
         Type pageType,
         bool addToNavigationStack,
-        object? dataContext = null
+        object? dataContext = null,
+        INavigationViewItem? preResolvedItem = null,
+        object? preResolvedPageInstance = null
     )
     {
-        var navigationViewItem = new NavigationViewItem(pageType);
+        INavigationViewItem navigationViewItem = preResolvedItem ?? new NavigationViewItem(pageType);
 
         // Resolve the page once and reuse it both for the breadcrumb title and for display
-        var pageInstance = GetNavigationItemInstance(navigationViewItem);
+        var pageInstance = preResolvedPageInstance ?? GetNavigationItemInstance(navigationViewItem);
         if (pageInstance is Page page && !string.IsNullOrEmpty(page.Title))
         {
             navigationViewItem.Content = page.Title;
@@ -317,6 +321,10 @@ public partial class NavigationView
         return true;
     }
 
+    private Func<bool>? _navigationContinuation;
+    private object? _navigationDataContext;
+    private long _navigationRequestVersion;
+
     private bool NavigateInternal(
         INavigationViewItem viewItem,
         object? dataContext = null,
@@ -326,6 +334,7 @@ public partial class NavigationView
         object? preResolvedPageInstance = null
     )
     {
+        long requestVersion = ++_navigationRequestVersion;
         if (NavigationStack.Count > 0 && NavigationStack[^1] == viewItem)
         {
             return false;
@@ -335,11 +344,72 @@ public partial class NavigationView
         dataContext ??= viewItem.TargetDataContext;
 
         var pageInstance = preResolvedPageInstance ?? GetNavigationItemInstance(viewItem);
+        object? origin = CurrentContent;
+        Type? targetPageType = viewItem.TargetPageType;
+        bool wasRegistered = PageIdOrTargetTagNavigationViewsDictionary.TryGetValue(viewItem.Id, out INavigationViewItem? registeredItem)
+            && ReferenceEquals(registeredItem, viewItem);
+        bool canceled = false;
+        bool resumed = false;
+        Func<bool>? priorContinuation = _navigationContinuation;
+        object? priorDataContext = _navigationDataContext;
+        _navigationDataContext = dataContext;
+        _navigationContinuation = () =>
+        {
+            Dispatcher.VerifyAccess();
+            if (!canceled || resumed || requestVersion != _navigationRequestVersion || !ReferenceEquals(origin, CurrentContent)
+                || viewItem.TargetPageType != targetPageType)
+            {
+                return false;
+            }
 
-        if (OnNavigating(pageInstance))
+            resumed = true;
+            if (wasRegistered &&
+                (!PageIdOrTargetTagNavigationViewsDictionary.TryGetValue(viewItem.Id, out INavigationViewItem? currentItem)
+                    || !ReferenceEquals(currentItem, viewItem)))
+            {
+                return false;
+            }
+
+            if (!wasRegistered && PageTypeNavigationViewsDictionary.ContainsKey(viewItem.TargetPageType!))
+            {
+                return false;
+            }
+
+            if (isBackwardsNavigated)
+            {
+                return ReferenceEquals(dataContext, viewItem.TargetDataContext)
+                    && Journal.Count > 1 && Journal[^2] == viewItem.Id && GoBack();
+            }
+
+            if (isForwardNavigated)
+            {
+                return ReferenceEquals(dataContext, viewItem.TargetDataContext)
+                    && _forwardStack.Count > 0 && _forwardStack.Peek() == viewItem.Id && GoForward();
+            }
+
+            return wasRegistered
+                ? NavigateInternal(viewItem, dataContext, addToNavigationStack, preResolvedPageInstance: pageInstance)
+                : TryToNavigateWithoutINavigationViewItem(
+                    viewItem.TargetPageType!,
+                    addToNavigationStack,
+                    dataContext,
+                    viewItem,
+                    pageInstance);
+        };
+
+        try
+        {
+            canceled = OnNavigating(pageInstance);
+        }
+        finally
+        {
+            _navigationContinuation = priorContinuation;
+            _navigationDataContext = priorDataContext;
+        }
+
+        if (canceled)
         {
             Debug.WriteLineIf(EnableDebugMessages, "Navigation canceled");
-
             return false;
         }
 

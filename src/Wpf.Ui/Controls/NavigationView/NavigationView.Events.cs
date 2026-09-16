@@ -167,7 +167,12 @@ public partial class NavigationView
     /// </summary>
     protected virtual bool OnNavigating(object sourcePage)
     {
-        var eventArgs = new NavigatingCancelEventArgs(NavigatingEvent, this) { Page = sourcePage };
+        var eventArgs = new NavigatingCancelEventArgs(NavigatingEvent, this)
+        {
+            Page = sourcePage,
+            ResumeNavigation = _navigationContinuation,
+            TargetDataContext = _navigationDataContext,
+        };
 
         RaiseEvent(eventArgs);
 

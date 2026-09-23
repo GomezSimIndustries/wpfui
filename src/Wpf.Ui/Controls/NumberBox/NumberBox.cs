@@ -209,11 +209,12 @@ public partial class NumberBox : TextBox
     }
 
     /// <summary>
-    /// Gets or sets how <see cref="NumberBox"/> reconciles typed text with <see cref="Value"/> while typing and at commit.
+    /// Gets or sets how <see cref="NumberBox"/> reconciles typed text with <see cref="Value"/> at commit.
     /// </summary>
     /// <remarks>
-    /// Governs only <see cref="NumberBox"/>'s own text parsing. It does not disable the <see cref="Minimum"/>/<see cref="Maximum"/>
-    /// range invariant on <see cref="Value"/>. It is not a WPF <see cref="System.Windows.Controls.ValidationRule"/>; a binding-level
+    /// Typed text reaches <see cref="Value"/> only at commit in every mode. <see cref="NumberBoxValidationMode.InvalidInputOverwritten"/>
+    /// coerces <see cref="Value"/> into <see cref="Minimum"/>/<see cref="Maximum"/>; <see cref="NumberBoxValidationMode.Disabled"/> never does,
+    /// except that a spin step stops at the bound. It is not a WPF <see cref="System.Windows.Controls.ValidationRule"/>; a binding-level
     /// validation error requires a <see cref="System.Windows.Controls.ValidationRule"/> on the <see cref="Value"/> binding.
     /// </remarks>
     public NumberBoxValidationMode ValidationMode
@@ -317,42 +318,6 @@ public partial class NumberBox : TextBox
     }
 
     /// <inheritdoc />
-    protected override void OnTextChanged(System.Windows.Controls.TextChangedEventArgs e)
-    {
-        base.OnTextChanged(e);
-
-        // Don't validate while we're programmatically updating text from Value
-        if (_valueUpdating)
-        {
-            return;
-        }
-
-        // ValidationMode.Disabled defers Value updates to explicit commit boundaries
-        if (ValidationMode == NumberBoxValidationMode.Disabled)
-        {
-            return;
-        }
-
-        // Skip validation if text ends with a decimal separator or minus sign
-        // (user is still typing a number like "1." or "-")
-        string text = Text.Trim();
-        if (string.IsNullOrEmpty(text) || text.EndsWith('.') || text.EndsWith(',')
-            || text == "-" || text == "+")
-        {
-            return;
-        }
-
-        // Try to parse — only update Value if the text is a valid complete number
-        var numberParser = NumberFormatter as INumberParser;
-        double? parsed = numberParser?.ParseDouble(text);
-        if (parsed is not null && !Equals(Value, parsed))
-        {
-            double clamped = ClampToRange(parsed.Value);
-            SetCurrentValue(ValueProperty, clamped);
-        }
-    }
-
-    /// <inheritdoc />
     public override void OnApplyTemplate()
     {
         SubscribeToButtonClickEvent<System.Windows.Controls.Button>(
@@ -410,7 +375,7 @@ public partial class NumberBox : TextBox
         _valueUpdating = true;
 
         double? requestedValue = Value;
-        double? finalValue = requestedValue is double requested ? ClampToRange(requested) : null;
+        double? finalValue = requestedValue is double requested && CoercesToRange ? ClampToRange(requested) : requestedValue;
 
         if (!Equals(finalValue, requestedValue))
         {
@@ -426,6 +391,8 @@ public partial class NumberBox : TextBox
 
         _valueUpdating = false;
     }
+
+    private bool CoercesToRange => ValidationMode == NumberBoxValidationMode.InvalidInputOverwritten;
 
     /// <summary>
     /// Clamps <paramref name="value"/> into the effective <see cref="Minimum"/>/<see cref="Maximum"/> range,
@@ -485,7 +452,7 @@ public partial class NumberBox : TextBox
             newValue += change ?? 0d;
         }
 
-        SetCurrentValue(ValueProperty, newValue);
+        SetCurrentValue(ValueProperty, ClampToRange(newValue));
 
         MoveCaretToTextEnd();
     }
@@ -540,7 +507,10 @@ public partial class NumberBox : TextBox
             return;
         }
 
-        value = ClampToRange(value.Value);
+        if (CoercesToRange)
+        {
+            value = ClampToRange(value.Value);
+        }
 
         SetCurrentValue(ValueProperty, value);
     }

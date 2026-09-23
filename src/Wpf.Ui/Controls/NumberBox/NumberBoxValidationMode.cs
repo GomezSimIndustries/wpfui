@@ -14,12 +14,14 @@ namespace Wpf.Ui.Controls;
 public enum NumberBoxValidationMode
 {
     /// <summary>
-    /// Overwrites text that fails to parse as a number with the current <see cref="NumberBox.Value"/> when input is committed.
+    /// At commit, overwrites text that fails to parse as a number with the current <see cref="NumberBox.Value"/> and coerces the value into the
+    /// <see cref="NumberBox.Minimum"/>/<see cref="NumberBox.Maximum"/> range.
     /// </summary>
     InvalidInputOverwritten,
 
     /// <summary>
-    /// Defers <see cref="NumberBox.Value"/> updates to commit and leaves unparseable text as the user typed it.
+    /// Leaves unparseable text as the user typed it and never coerces a committed <see cref="NumberBox.Value"/> into the
+    /// <see cref="NumberBox.Minimum"/>/<see cref="NumberBox.Maximum"/> range; a spin step still stops at the bound.
     /// </summary>
     Disabled,
 }

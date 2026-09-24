@@ -84,6 +84,52 @@ public sealed class TitleBarThemeAttachmentLifetimeTests : IDisposable
         });
     }
 
+    [Fact]
+    public void ThemeChange_BeforeFirstLoad_DoesNotUpdate()
+    {
+        WpfTestHost.Invoke(() =>
+        {
+            ApplicationThemeManager.Apply(ApplicationTheme.Dark, updateAccent: false);
+
+            var bar = new CountingTitleBar();
+            bar.BeginInit();
+            bar.EndInit();
+
+            ApplicationThemeManager.Apply(ApplicationTheme.Light, updateAccent: false);
+
+            Assert.Equal(0, bar.ThemeChangedCount);
+        });
+    }
+
+    [Fact]
+    public void FirstLoad_AfterAThemeChange_TakesTheCurrentApplicationTheme()
+    {
+        WpfTestHost.Invoke(() =>
+        {
+            ApplicationThemeManager.Apply(ApplicationTheme.Dark, updateAccent: false);
+
+            var bar = new CountingTitleBar();
+            bar.BeginInit();
+            bar.EndInit();
+
+            ApplicationThemeManager.Apply(ApplicationTheme.Light, updateAccent: false);
+
+            Window window = WpfTestHost.CreateOffscreenOwnerWindow();
+            window.Content = bar;
+            window.Show();
+            bar.UpdateLayout();
+
+            try
+            {
+                Assert.Equal(ApplicationTheme.Light, bar.ApplicationTheme);
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+    }
+
     private sealed class CountingTitleBar : TitleBar
     {
         public int ThemeChangedCount { get; private set; }

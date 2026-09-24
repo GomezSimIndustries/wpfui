@@ -463,7 +463,6 @@ public partial class TitleBar : System.Windows.Controls.Control, IThemeControl
         base.OnInitialized(e);
 
         SetCurrentValue(ApplicationThemeProperty, Appearance.ApplicationThemeManager.GetAppTheme());
-        SubscribeToThemeChanges();
     }
 
     protected virtual void OnLoaded(object sender, RoutedEventArgs e)
@@ -472,6 +471,9 @@ public partial class TitleBar : System.Windows.Controls.Control, IThemeControl
         {
             return;
         }
+
+        SetCurrentValue(ApplicationThemeProperty, Appearance.ApplicationThemeManager.GetAppTheme());
+        SubscribeToThemeChanges();
 
         Window? window = Window.GetWindow(this);
         if (window is null)
@@ -486,7 +488,6 @@ public partial class TitleBar : System.Windows.Controls.Control, IThemeControl
         }
 
         AttachToWindow(window);
-        SubscribeToThemeChanges();
         SubscribeToSystemParameters();
     }
 
